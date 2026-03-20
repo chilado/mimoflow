@@ -1,0 +1,82 @@
+import {
+  LayoutDashboard,
+  Calculator,
+  ClipboardList,
+  Package,
+  Users,
+  DollarSign,
+  Settings,
+} from 'lucide-react';
+import { NavLink } from '@/components/NavLink';
+import { useLocation } from 'react-router-dom';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  useSidebar,
+} from '@/components/ui/sidebar';
+
+const navItems = [
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Precificação', url: '/pricing', icon: Calculator },
+  { title: 'Pedidos', url: '/orders', icon: ClipboardList },
+  { title: 'Estoque', url: '/inventory', icon: Package },
+  { title: 'Clientes', url: '/clients', icon: Users },
+  { title: 'Financeiro', url: '/finance', icon: DollarSign },
+  { title: 'Configurações', url: '/settings', icon: Settings },
+];
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === 'collapsed';
+  const location = useLocation();
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
+            <span className="text-sm font-bold text-primary-foreground">P</span>
+          </div>
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="font-heading text-sm font-bold text-sidebar-foreground">PapelariaApp</span>
+              <span className="text-[11px] text-muted-foreground">Gestão Inteligente</span>
+            </div>
+          )}
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                const active = location.pathname === item.url;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={active}>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className="hover:bg-sidebar-accent/60"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+}
