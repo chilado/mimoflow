@@ -19,6 +19,7 @@ const navItems = [
   { title: 'Produtos', url: '/products', icon: ShoppingBag },
   { title: 'Estoque', url: '/inventory', icon: Package },
   { title: 'Clientes', url: '/clients', icon: Users },
+  { title: 'Agenda', url: '/agenda', icon: CalendarDays },
   { title: 'Financeiro', url: '/finance', icon: DollarSign },
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
