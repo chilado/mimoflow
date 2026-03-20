@@ -1,30 +1,22 @@
 import {
-  LayoutDashboard,
-  Calculator,
-  ClipboardList,
-  Package,
-  Users,
-  DollarSign,
-  Settings,
+  LayoutDashboard, Calculator, ClipboardList, Package, Users,
+  DollarSign, Settings, LogOut, ShoppingBag,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader,
+  SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Precificação', url: '/pricing', icon: Calculator },
   { title: 'Pedidos', url: '/orders', icon: ClipboardList },
+  { title: 'Produtos', url: '/products', icon: ShoppingBag },
   { title: 'Estoque', url: '/inventory', icon: Package },
   { title: 'Clientes', url: '/clients', icon: Users },
   { title: 'Financeiro', url: '/finance', icon: DollarSign },
@@ -35,6 +27,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
+  const { signOut, user } = useAuth();
 
   return (
     <Sidebar collapsible="icon">
@@ -60,12 +53,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active}>
-                      <NavLink
-                        to={item.url}
-                        end
-                        className="hover:bg-sidebar-accent/60"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                      >
+                      <NavLink to={item.url} end className="hover:bg-sidebar-accent/60" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                         <item.icon className="mr-2 h-4 w-4" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
@@ -77,6 +65,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-3">
+        {!collapsed && user && (
+          <p className="text-[11px] text-muted-foreground truncate mb-2 px-1">{user.email}</p>
+        )}
+        <Button variant="ghost" size="sm" className="w-full justify-start text-xs" onClick={signOut}>
+          <LogOut className="h-4 w-4 mr-2" /> {!collapsed && 'Sair'}
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
