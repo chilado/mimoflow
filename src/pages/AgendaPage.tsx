@@ -1,12 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useOrders } from '@/hooks/useStore';
 import { formatCurrency, ORDER_STATUS_LABELS, type OrderStatus } from '@/lib/store';
-import { CalendarDays, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
-import { format, isSameDay, isToday, isBefore, startOfDay } from 'date-fns';
+import { CalendarDays, AlertTriangle, CheckCircle2, Clock, Bell, Filter } from 'lucide-react';
+import { format, isSameDay, isToday, isBefore, startOfDay, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const STATUS_COLORS: Record<string, string> = {
   awaiting_payment: 'bg-amber-500',
@@ -17,34 +25,84 @@ const STATUS_COLORS: Record<string, string> = {
   delivered: 'bg-muted-foreground',
 };
 
+const FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'all', label: 'Todos os status' },
+  { value: 'pending', label: '⏳ Pendentes (não entregues)' },
+  { value: 'in_production', label: '🔧 Em Produção' },
+  { value: 'awaiting_payment', label: '💰 Aguardando Pagamento' },
+  { value: 'awaiting_art', label: '🎨 Aguardando Arte' },
+  { value: 'art_approved', label: '✅ Arte Aprovada' },
+  { value: 'finished', label: '📦 Finalizado' },
+  { value: 'delivered', label: '🚚 Entregue' },
+];
+
 export default function AgendaPage() {
   const { orders } = useOrders();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [notified, setNotified] = useState(false);
 
   const ordersWithDate = useMemo(
     () => orders.filter((o) => o.delivery_date),
     [orders],
   );
 
-  // Dates that have deliveries
+  // Apply status filter
+  const filteredOrders = useMemo(() => {
+    if (statusFilter === 'all') return ordersWithDate;
+    if (statusFilter === 'pending')
+      return ordersWithDate.filter((o) => o.status !== 'delivered' && o.status !== 'finished');
+    return ordersWithDate.filter((o) => o.status === statusFilter);
+  }, [ordersWithDate, statusFilter]);
+
+  // Deadline notifications (3 days before)
+  useEffect(() => {
+    if (notified || ordersWithDate.length === 0) return;
+    const today = startOfDay(new Date());
+    const upcoming = ordersWithDate.filter((o) => {
+      if (o.status === 'delivered' || o.status === 'finished') return false;
+      const d = new Date(o.delivery_date! + 'T12:00:00');
+      const diff = differenceInDays(d, today);
+      return diff >= 0 && diff <= 3;
+    });
+    if (upcoming.length > 0) {
+      upcoming.forEach((o) => {
+        const d = new Date(o.delivery_date! + 'T12:00:00');
+        const diff = differenceInDays(d, today);
+        const label =
+          diff === 0
+            ? 'HOJE'
+            : diff === 1
+              ? 'amanhã'
+              : `em ${diff} dias`;
+        toast.warning(`⏰ Entrega ${label}`, {
+          description: `${o.client_name} — ${o.event_theme}`,
+          duration: 8000,
+        });
+      });
+      setNotified(true);
+    }
+  }, [ordersWithDate, notified]);
+
+  // Dates that have deliveries (filtered)
   const deliveryDates = useMemo(() => {
     const map = new Map<string, number>();
-    ordersWithDate.forEach((o) => {
+    filteredOrders.forEach((o) => {
       const key = o.delivery_date!;
       map.set(key, (map.get(key) || 0) + 1);
     });
     return map;
-  }, [ordersWithDate]);
+  }, [filteredOrders]);
 
-  // Orders for the selected day
+  // Orders for the selected day (filtered)
   const dayOrders = useMemo(() => {
     if (!selectedDate) return [];
-    return ordersWithDate.filter((o) =>
+    return filteredOrders.filter((o) =>
       isSameDay(new Date(o.delivery_date! + 'T12:00:00'), selectedDate),
     );
-  }, [selectedDate, ordersWithDate]);
+  }, [selectedDate, filteredOrders]);
 
-  // Overdue orders
+  // Overdue orders (always from full set)
   const overdueOrders = useMemo(() => {
     const today = startOfDay(new Date());
     return ordersWithDate.filter(
@@ -53,6 +111,16 @@ export default function AgendaPage() {
         o.status !== 'finished' &&
         isBefore(new Date(o.delivery_date! + 'T12:00:00'), today),
     );
+  }, [ordersWithDate]);
+
+  // Upcoming 3-day alerts count
+  const upcomingCount = useMemo(() => {
+    const today = startOfDay(new Date());
+    return ordersWithDate.filter((o) => {
+      if (o.status === 'delivered' || o.status === 'finished') return false;
+      const diff = differenceInDays(new Date(o.delivery_date! + 'T12:00:00'), today);
+      return diff >= 0 && diff <= 3;
+    }).length;
   }, [ordersWithDate]);
 
   // Week summary
@@ -76,31 +144,55 @@ export default function AgendaPage() {
   }, [deliveryDates]);
 
   const modifiersStyles = {
-    delivery: {
-      fontWeight: 700,
-    } as React.CSSProperties,
+    delivery: { fontWeight: 700 } as React.CSSProperties,
   };
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <div>
-        <h1 className="font-heading text-2xl font-bold flex items-center gap-2">
-          <CalendarDays className="h-6 w-6 text-primary" />
-          Agenda de Entregas
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Visualize seus prazos e evite sobrecarga de trabalho
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-heading text-2xl font-bold flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-primary" />
+            Agenda de Entregas
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Visualize seus prazos e evite sobrecarga de trabalho
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FILTER_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-primary" />
             <div>
-              <p className="text-xs text-muted-foreground">Entregas esta semana</p>
+              <p className="text-xs text-muted-foreground">Esta semana</p>
               <p className="text-xl font-bold font-heading">{weekSummary}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <Bell className={`h-5 w-5 ${upcomingCount > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
+            <div>
+              <p className="text-xs text-muted-foreground">Próximos 3 dias</p>
+              <p className="text-xl font-bold font-heading">{upcomingCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -194,9 +286,7 @@ export default function AgendaPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{o.client_name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {o.event_theme}
-                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{o.event_theme}</p>
                       {o.personalization && (
                         <p className="text-xs text-muted-foreground mt-0.5 truncate">
                           🎨 {o.personalization}
