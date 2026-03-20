@@ -14,6 +14,7 @@ import ClientsPage from "./pages/ClientsPage";
 import FinancePage from "./pages/FinancePage";
 import SettingsPage from "./pages/SettingsPage";
 import ProductsPage from "./pages/ProductsPage";
+import AgendaPage from "./pages/AgendaPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ function ProtectedRoutes() {
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/clients" element={<ClientsPage />} />
+        <Route path="/agenda" element={<AgendaPage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
