@@ -37,10 +37,10 @@ function useSupabaseTable<T extends { id: string }>(
 
   const refresh = useCallback(async () => {
     if (!user) { setData([]); setLoading(false); return; }
-    const { data: rows } = await supabase
-      .from(table)
+    const { data: rows } = await (supabase
+      .from(table as any)
       .select('*')
-      .order(orderBy, { ascending: false }) as any;
+      .order(orderBy, { ascending: false }) as any);
     setData((rows || []) as T[]);
     setLoading(false);
   }, [user, table, orderBy]);
