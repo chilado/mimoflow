@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Plus, Trash2, AlertTriangle, Edit2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useMaterials } from '@/hooks/useStore';
-import { formatCurrency, type Material } from '@/lib/store';
+import { useMaterials, type Material } from '@/hooks/useStore';
+import { formatCurrency } from '@/lib/store';
 
 const categories = ['Papéis', 'Tintas', 'Vinil', 'Laços/Fitas', 'Colas', 'Embalagens', 'Outros'];
 const units = ['unidade', 'folha', 'metro', 'grama', 'ml', 'rolo', 'pacote'];
@@ -18,18 +18,19 @@ export default function InventoryPage() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    name: '', category: 'Papéis', quantity: 0, unit: 'folha', costPerUnit: 0, minStock: 5, supplier: '', supplierContact: '', lastPrice: 0,
+    name: '', category: 'Papéis', quantity: 0, unit: 'folha', cost_per_unit: 0, min_stock: 5, supplier: '', supplier_contact: '', last_price: 0,
   });
   const [filterCat, setFilterCat] = useState('all');
 
   const resetForm = () => {
-    setForm({ name: '', category: 'Papéis', quantity: 0, unit: 'folha', costPerUnit: 0, minStock: 5, supplier: '', supplierContact: '', lastPrice: 0 });
+    setForm({ name: '', category: 'Papéis', quantity: 0, unit: 'folha', cost_per_unit: 0, min_stock: 5, supplier: '', supplier_contact: '', last_price: 0 });
     setEditingId(null);
   };
 
   const handleSave = () => {
     if (editingId) {
-      update({ ...form, id: editingId } as Material);
+      const existing = materials.find(m => m.id === editingId)!;
+      update({ ...existing, ...form });
     } else {
       add(form);
     }
@@ -38,13 +39,17 @@ export default function InventoryPage() {
   };
 
   const startEdit = (m: Material) => {
-    setForm({ name: m.name, category: m.category, quantity: m.quantity, unit: m.unit, costPerUnit: m.costPerUnit, minStock: m.minStock, supplier: m.supplier || '', supplierContact: m.supplierContact || '', lastPrice: m.lastPrice || 0 });
+    setForm({
+      name: m.name, category: m.category, quantity: Number(m.quantity), unit: m.unit,
+      cost_per_unit: Number(m.cost_per_unit), min_stock: Number(m.min_stock),
+      supplier: m.supplier || '', supplier_contact: m.supplier_contact || '', last_price: Number(m.last_price || 0),
+    });
     setEditingId(m.id);
     setOpen(true);
   };
 
   const filtered = filterCat === 'all' ? materials : materials.filter(m => m.category === filterCat);
-  const lowStockCount = materials.filter(m => m.quantity <= m.minStock).length;
+  const lowStockCount = materials.filter(m => Number(m.quantity) <= Number(m.min_stock)).length;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -92,11 +97,11 @@ export default function InventoryPage() {
                 </div>
                 <div>
                   <Label className="text-xs">Custo/Unidade</Label>
-                  <Input type="number" step="0.01" value={form.costPerUnit || ''} onChange={e => setForm(f => ({ ...f, costPerUnit: +e.target.value }))} />
+                  <Input type="number" step="0.01" value={form.cost_per_unit || ''} onChange={e => setForm(f => ({ ...f, cost_per_unit: +e.target.value }))} />
                 </div>
                 <div>
                   <Label className="text-xs">Estoque Mínimo</Label>
-                  <Input type="number" value={form.minStock || ''} onChange={e => setForm(f => ({ ...f, minStock: +e.target.value }))} />
+                  <Input type="number" value={form.min_stock || ''} onChange={e => setForm(f => ({ ...f, min_stock: +e.target.value }))} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -106,7 +111,7 @@ export default function InventoryPage() {
                 </div>
                 <div>
                   <Label className="text-xs">Contato Fornecedor</Label>
-                  <Input value={form.supplierContact} onChange={e => setForm(f => ({ ...f, supplierContact: e.target.value }))} placeholder="Telefone/email" />
+                  <Input value={form.supplier_contact} onChange={e => setForm(f => ({ ...f, supplier_contact: e.target.value }))} placeholder="Telefone/email" />
                 </div>
               </div>
               <Button className="w-full" onClick={handleSave} disabled={!form.name}>{editingId ? 'Salvar' : 'Cadastrar'}</Button>
@@ -127,7 +132,7 @@ export default function InventoryPage() {
           <Card><CardContent className="p-8 text-center text-muted-foreground text-sm">Nenhum material cadastrado.</CardContent></Card>
         ) : (
           filtered.map(m => {
-            const isLow = m.quantity <= m.minStock;
+            const isLow = Number(m.quantity) <= Number(m.min_stock);
             return (
               <Card key={m.id} className={`card-hover ${isLow ? 'border-warning/40' : ''}`}>
                 <CardContent className="p-4 flex items-center justify-between gap-4">
@@ -142,7 +147,7 @@ export default function InventoryPage() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      {m.quantity} {m.unit} — {formatCurrency(m.costPerUnit)}/{m.unit}
+                      {m.quantity} {m.unit} — {formatCurrency(Number(m.cost_per_unit))}/{m.unit}
                       {m.supplier && <span className="ml-2">• Fornecedor: {m.supplier}</span>}
                     </p>
                   </div>

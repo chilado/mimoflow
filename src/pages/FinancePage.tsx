@@ -31,8 +31,8 @@ export default function FinancePage() {
     return transactions.filter(t => t.date.startsWith(monthFilter)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, monthFilter]);
 
-  const income = monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expenses = monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const income = monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const expenses = monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const balance = income - expenses;
 
   return (
@@ -139,7 +139,7 @@ export default function FinancePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`font-medium ${t.type === 'income' ? 'text-success' : 'text-destructive'}`}>
-                      {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                      {t.type === 'income' ? '+' : '-'}{formatCurrency(Number(t.amount))}
                     </span>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(t.id)}><Trash2 className="h-3 w-3" /></Button>
                   </div>

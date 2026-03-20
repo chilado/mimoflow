@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useClients, useOrders } from '@/hooks/useStore';
-import { formatCurrency, ORDER_STATUS_LABELS, type Client } from '@/lib/store';
+import { useClients, useOrders, type Client } from '@/hooks/useStore';
+import { formatCurrency, ORDER_STATUS_LABELS, type OrderStatus } from '@/lib/store';
 
 export default function ClientsPage() {
   const { clients, add, update, remove } = useClients();
@@ -36,7 +36,7 @@ export default function ClientsPage() {
     setOpen(true);
   };
 
-  const getClientOrders = (name: string) => orders.filter(o => o.clientName === name);
+  const getClientOrders = (name: string) => orders.filter(o => o.client_name === name);
 
   const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)
@@ -90,7 +90,7 @@ export default function ClientsPage() {
         ) : (
           filtered.map(client => {
             const clientOrders = getClientOrders(client.name);
-            const totalSpent = clientOrders.reduce((s, o) => s + o.total, 0);
+            const totalSpent = clientOrders.reduce((s, o) => s + Number(o.total), 0);
             return (
               <Card key={client.id} className="card-hover">
                 <CardContent className="p-4">
@@ -113,7 +113,7 @@ export default function ClientsPage() {
                           {clientOrders.length} pedido{clientOrders.length > 1 ? 's' : ''} — Total: {formatCurrency(totalSpent)}
                           <div className="mt-1 space-y-0.5">
                             {clientOrders.slice(-3).map(o => (
-                              <div key={o.id}>{o.eventTheme} — {ORDER_STATUS_LABELS[o.status]}</div>
+                              <div key={o.id}>{o.event_theme} — {ORDER_STATUS_LABELS[o.status as OrderStatus]}</div>
                             ))}
                           </div>
                         </div>

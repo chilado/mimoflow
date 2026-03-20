@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { usePricingConfig } from '@/hooks/useStore';
+import { usePricingConfig, type FixedCost } from '@/hooks/useStore';
 import { formatCurrency, generateId } from '@/lib/store';
 
 interface MaterialCost {
@@ -17,24 +17,34 @@ interface MaterialCost {
 }
 
 export default function PricingPage() {
-  const { config, save } = usePricingConfig();
+  const { config, loading, save } = usePricingConfig();
 
-  // Product pricing form
   const [productName, setProductName] = useState('');
   const [materials, setMaterials] = useState<MaterialCost[]>([]);
   const [productionMinutes, setProductionMinutes] = useState(30);
-  const [margin, setMargin] = useState(config.defaultMargin);
-  const [taxRate, setTaxRate] = useState(config.defaultTaxRate);
+  const [margin, setMargin] = useState(30);
+  const [taxRate, setTaxRate] = useState(6);
   const [quantity, setQuantity] = useState(1);
 
-  const hourlyRate = config.monthlyWorkHours > 0
-    ? config.desiredMonthlySalary / config.monthlyWorkHours
+  // Sync defaults when config loads
+  const [initialized, setInitialized] = useState(false);
+  if (config && !initialized) {
+    setMargin(Number(config.default_margin));
+    setTaxRate(Number(config.default_tax_rate));
+    setInitialized(true);
+  }
+
+  if (loading || !config) return <div className="p-8 text-muted-foreground">Carregando...</div>;
+
+  const fixedCosts: FixedCost[] = (Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as any;
+
+  const hourlyRate = Number(config.monthly_work_hours) > 0
+    ? Number(config.desired_monthly_salary) / Number(config.monthly_work_hours)
     : 0;
 
-  const totalFixedCosts = config.fixedCosts.reduce((s, c) => s + c.monthlyCost, 0);
-  const fixedCostPerHour = config.monthlyWorkHours > 0 ? totalFixedCosts / config.monthlyWorkHours : 0;
+  const totalFixedCosts = fixedCosts.reduce((s, c) => s + c.monthlyCost, 0);
+  const fixedCostPerHour = Number(config.monthly_work_hours) > 0 ? totalFixedCosts / Number(config.monthly_work_hours) : 0;
 
-  // Calculations
   const materialsCost = materials.reduce((sum, m) => {
     const costPerUnit = m.packageQty > 0 ? m.packagePrice / m.packageQty : 0;
     return sum + costPerUnit * m.usedQty;
@@ -55,8 +65,13 @@ export default function PricingPage() {
     setMaterials(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
   };
 
-  const addFixedCost = () => save({ ...config, fixedCosts: [...config.fixedCosts, { id: generateId(), name: '', monthlyCost: 0 }] });
-  const removeFixedCost = (id: string) => save({ ...config, fixedCosts: config.fixedCosts.filter(c => c.id !== id) });
+  const addFixedCost = () => {
+    const updated = [...fixedCosts, { id: generateId(), name: '', monthlyCost: 0 }];
+    save({ ...config, fixed_costs: updated as any });
+  };
+  const removeFixedCost = (id: string) => {
+    save({ ...config, fixed_costs: fixedCosts.filter(c => c.id !== id) as any });
+  };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -66,51 +81,44 @@ export default function PricingPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Config */}
         <Card className="animate-fade-up stagger-1">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Configurações Gerais</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Configurações Gerais</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Salário Desejado/Mês</Label>
-                <Input type="number" value={config.desiredMonthlySalary} onChange={e => save({ ...config, desiredMonthlySalary: +e.target.value })} />
+                <Input type="number" value={config.desired_monthly_salary} onChange={e => save({ ...config, desired_monthly_salary: +e.target.value })} />
               </div>
               <div>
                 <Label className="text-xs">Horas/Mês de Trabalho</Label>
-                <Input type="number" value={config.monthlyWorkHours} onChange={e => save({ ...config, monthlyWorkHours: +e.target.value })} />
+                <Input type="number" value={config.monthly_work_hours} onChange={e => save({ ...config, monthly_work_hours: +e.target.value })} />
               </div>
             </div>
             <div className="text-sm text-muted-foreground">
               Valor da sua hora: <strong className="text-foreground">{formatCurrency(hourlyRate)}</strong>
             </div>
-
             <Separator />
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-xs font-medium">Custos Fixos Mensais</Label>
                 <Button variant="ghost" size="sm" onClick={addFixedCost}><Plus className="h-3 w-3 mr-1" /> Adicionar</Button>
               </div>
-              {config.fixedCosts.map(c => (
+              {fixedCosts.map(c => (
                 <div key={c.id} className="flex gap-2 mb-2">
-                  <Input placeholder="Nome" value={c.name} className="text-sm" onChange={e => save({ ...config, fixedCosts: config.fixedCosts.map(x => x.id === c.id ? { ...x, name: e.target.value } : x) })} />
-                  <Input type="number" placeholder="R$" value={c.monthlyCost || ''} className="w-28 text-sm" onChange={e => save({ ...config, fixedCosts: config.fixedCosts.map(x => x.id === c.id ? { ...x, monthlyCost: +e.target.value } : x) })} />
+                  <Input placeholder="Nome" value={c.name} className="text-sm" onChange={e => save({ ...config, fixed_costs: fixedCosts.map(x => x.id === c.id ? { ...x, name: e.target.value } : x) as any })} />
+                  <Input type="number" placeholder="R$" value={c.monthlyCost || ''} className="w-28 text-sm" onChange={e => save({ ...config, fixed_costs: fixedCosts.map(x => x.id === c.id ? { ...x, monthlyCost: +e.target.value } : x) as any })} />
                   <Button variant="ghost" size="icon" onClick={() => removeFixedCost(c.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               ))}
-              {config.fixedCosts.length > 0 && (
+              {fixedCosts.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">Total: {formatCurrency(totalFixedCosts)}/mês — {formatCurrency(fixedCostPerHour)}/hora</p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Result */}
         <Card className="animate-fade-up stagger-2 border-primary/20 bg-primary/[0.02]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Resultado</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Resultado</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Custo de Materiais</span><span>{formatCurrency(materialsCost)}</span></div>
@@ -121,18 +129,11 @@ export default function PricingPage() {
               <div className="flex justify-between text-muted-foreground"><span>Margem de Lucro ({margin}%)</span><span>+{formatCurrency(baseCost * margin / 100)}</span></div>
               <div className="flex justify-between text-muted-foreground"><span>Impostos/Taxas ({taxRate}%)</span><span>+{formatCurrency(taxAmount)}</span></div>
               <Separator />
-              <div className="flex justify-between text-lg font-bold text-primary">
-                <span>Preço de Venda</span>
-                <span>{formatCurrency(finalPrice)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-success">
-                <span>Lucro Líquido</span>
-                <span>{formatCurrency(profit)}</span>
-              </div>
+              <div className="flex justify-between text-lg font-bold text-primary"><span>Preço de Venda</span><span>{formatCurrency(finalPrice)}</span></div>
+              <div className="flex justify-between text-sm text-success"><span>Lucro Líquido</span><span>{formatCurrency(profit)}</span></div>
               {quantity > 1 && (
                 <div className="flex justify-between text-sm font-medium mt-2 pt-2 border-t">
-                  <span>Total ({quantity} unid.)</span>
-                  <span>{formatCurrency(finalPrice * quantity)}</span>
+                  <span>Total ({quantity} unid.)</span><span>{formatCurrency(finalPrice * quantity)}</span>
                 </div>
               )}
             </div>
@@ -140,11 +141,8 @@ export default function PricingPage() {
         </Card>
       </div>
 
-      {/* Product calc */}
       <Card className="animate-fade-up stagger-3">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Calcular Produto</CardTitle>
-        </CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Calcular Produto</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-4 gap-3">
             <div className="sm:col-span-2">
@@ -160,7 +158,6 @@ export default function PricingPage() {
               <Input type="number" value={quantity} onChange={e => setQuantity(Math.max(1, +e.target.value))} />
             </div>
           </div>
-
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Margem de Lucro (%)</Label>
@@ -171,13 +168,11 @@ export default function PricingPage() {
               <Input type="number" value={taxRate} onChange={e => setTaxRate(+e.target.value)} />
             </div>
           </div>
-
           <Separator />
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Materiais Utilizados</Label>
             <Button variant="outline" size="sm" onClick={addMaterial}><Plus className="h-3 w-3 mr-1" /> Material</Button>
           </div>
-
           {materials.map(m => (
             <div key={m.id} className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 items-end">
               <div>
