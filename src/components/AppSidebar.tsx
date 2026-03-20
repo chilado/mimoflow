@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Calculator, ClipboardList, Package, Users,
-  DollarSign, Settings, LogOut, ShoppingBag,
+  DollarSign, Settings, LogOut, ShoppingBag, CalendarDays,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
