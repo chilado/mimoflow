@@ -14,6 +14,7 @@ import ClientsPage from "./pages/ClientsPage";
 import FinancePage from "./pages/FinancePage";
 import SettingsPage from "./pages/SettingsPage";
 import ProductsPage from "./pages/ProductsPage";
+import AgendaPage from "./pages/AgendaPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
