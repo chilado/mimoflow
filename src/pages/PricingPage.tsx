@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, PackagePlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { usePricingConfig, type FixedCost } from '@/hooks/useStore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { usePricingConfig, useMaterials, type FixedCost, type Material } from '@/hooks/useStore';
 import { formatCurrency, generateId } from '@/lib/store';
 
 interface MaterialCost {
@@ -14,10 +16,12 @@ interface MaterialCost {
   packageQty: number;
   packagePrice: number;
   usedQty: number;
+  materialId?: string; // linked inventory material
 }
 
 export default function PricingPage() {
   const { config, loading, save } = usePricingConfig();
+  const { materials: inventoryMaterials } = useMaterials();
 
   const [productName, setProductName] = useState('');
   const [materials, setMaterials] = useState<MaterialCost[]>([]);
@@ -25,8 +29,8 @@ export default function PricingPage() {
   const [margin, setMargin] = useState(30);
   const [taxRate, setTaxRate] = useState(6);
   const [quantity, setQuantity] = useState(1);
+  const [showMaterialPicker, setShowMaterialPicker] = useState(false);
 
-  // Sync defaults when config loads
   const [initialized, setInitialized] = useState(false);
   if (config && !initialized) {
     setMargin(Number(config.default_margin));
@@ -59,7 +63,20 @@ export default function PricingPage() {
   const finalPrice = priceBeforeTax + taxAmount;
   const profit = finalPrice - baseCost - taxAmount;
 
-  const addMaterial = () => setMaterials(prev => [...prev, { id: generateId(), name: '', packageQty: 1, packagePrice: 0, usedQty: 1 }]);
+  const addManualMaterial = () => setMaterials(prev => [...prev, { id: generateId(), name: '', packageQty: 1, packagePrice: 0, usedQty: 1 }]);
+
+  const addFromInventory = (inv: Material) => {
+    setMaterials(prev => [...prev, {
+      id: generateId(),
+      name: inv.name,
+      packageQty: 1,
+      packagePrice: Number(inv.cost_per_unit),
+      usedQty: 1,
+      materialId: inv.id,
+    }]);
+    setShowMaterialPicker(false);
+  };
+
   const removeMaterial = (id: string) => setMaterials(prev => prev.filter(m => m.id !== id));
   const updateMaterial = (id: string, field: keyof MaterialCost, value: string | number) => {
     setMaterials(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
@@ -171,13 +188,20 @@ export default function PricingPage() {
           <Separator />
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Materiais Utilizados</Label>
-            <Button variant="outline" size="sm" onClick={addMaterial}><Plus className="h-3 w-3 mr-1" /> Material</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowMaterialPicker(true)}>
+                <PackagePlus className="h-3 w-3 mr-1" /> Do Estoque
+              </Button>
+              <Button variant="ghost" size="sm" onClick={addManualMaterial}>
+                <Plus className="h-3 w-3 mr-1" /> Manual
+              </Button>
+            </div>
           </div>
           {materials.map(m => (
             <div key={m.id} className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 items-end">
               <div>
-                <Label className="text-[11px] text-muted-foreground">Material</Label>
-                <Input className="text-sm" value={m.name} onChange={e => updateMaterial(m.id, 'name', e.target.value)} placeholder="Papel kraft" />
+                <Label className="text-[11px] text-muted-foreground">Material {m.materialId ? '(estoque)' : ''}</Label>
+                <Input className="text-sm" value={m.name} onChange={e => updateMaterial(m.id, 'name', e.target.value)} placeholder="Papel kraft" readOnly={!!m.materialId} />
               </div>
               <div>
                 <Label className="text-[11px] text-muted-foreground">Qtd Pacote</Label>
@@ -197,6 +221,43 @@ export default function PricingPage() {
           {materials.length === 0 && <p className="text-sm text-muted-foreground">Adicione materiais para calcular o custo.</p>}
         </CardContent>
       </Card>
+
+      {/* Material Picker Dialog */}
+      <Dialog open={showMaterialPicker} onOpenChange={setShowMaterialPicker}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Selecionar Material do Estoque</DialogTitle>
+          </DialogHeader>
+          {inventoryMaterials.length === 0 ? (
+            <div className="text-center py-6 space-y-2">
+              <p className="text-sm text-muted-foreground">Nenhum material cadastrado no estoque.</p>
+              <p className="text-xs text-muted-foreground">Vá até a página de <strong>Estoque</strong> para cadastrar seus insumos primeiro.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {inventoryMaterials.map(inv => (
+                <button
+                  key={inv.id}
+                  onClick={() => addFromInventory(inv)}
+                  className="w-full text-left p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium text-sm">{inv.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{inv.category}</span>
+                    </div>
+                    <span className="text-sm font-medium text-primary">{formatCurrency(Number(inv.cost_per_unit))}/{inv.unit}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Estoque: {inv.quantity} {inv.unit}
+                    {inv.supplier && ` • ${inv.supplier}`}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

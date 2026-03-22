@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, CheckCircle2, XCircle, FileText } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, XCircle, FileText, Receipt } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useOrders, useClients, useProfile, type OrderItem, type Order } from '@/hooks/useStore';
 import { formatCurrency, generateId, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, type OrderStatus } from '@/lib/store';
-import { generateBudgetPDF } from '@/lib/pdfGenerator';
+import { generateBudgetPDF, generateReceiptPDF } from '@/lib/pdfGenerator';
 
 const statusOptions: OrderStatus[] = ['awaiting_payment', 'awaiting_art', 'art_approval', 'art_approved', 'in_production', 'finished', 'delivered'];
+const paymentMethods = ['PIX', 'Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'Transferência', 'Outro'];
 
 export default function OrdersPage() {
   const { orders, add, update, remove } = useOrders();
@@ -20,6 +21,8 @@ export default function OrdersPage() {
   const { profile } = useProfile();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<string>('all');
+  const [receiptDialog, setReceiptDialog] = useState<Order | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState('PIX');
 
   const [form, setForm] = useState({
     client_name: '', event_theme: '', delivery_date: '', personalization: '', art_notes: '',
@@ -78,6 +81,12 @@ export default function OrdersPage() {
   const addItem = () => setItems(prev => [...prev, { id: generateId(), name: '', quantity: 1, unitPrice: 0 }]);
 
   const orderItems = (o: Order): OrderItem[] => (Array.isArray(o.items) ? o.items : []) as any;
+
+  const handleGenerateReceipt = () => {
+    if (!receiptDialog) return;
+    generateReceiptPDF(receiptDialog, orderItems(receiptDialog), profile, paymentMethod);
+    setReceiptDialog(null);
+  };
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -209,6 +218,9 @@ export default function OrdersPage() {
                     <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => generateBudgetPDF(order, oItems, profile)}>
                       <FileText className="h-3 w-3 mr-1" /> PDF
                     </Button>
+                    <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setReceiptDialog(order); setPaymentMethod('PIX'); }}>
+                      <Receipt className="h-3 w-3 mr-1" /> Recibo
+                    </Button>
                     <Button variant="ghost" size="sm" className="text-xs h-8 text-destructive" onClick={() => remove(order.id)}>Excluir</Button>
                   </div>
                 </CardContent>
@@ -217,6 +229,32 @@ export default function OrdersPage() {
           })
         )}
       </div>
+
+      {/* Receipt Dialog */}
+      <Dialog open={!!receiptDialog} onOpenChange={(v) => { if (!v) setReceiptDialog(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Gerar Recibo Digital</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Pedido de <strong>{receiptDialog?.client_name}</strong> — {formatCurrency(Number(receiptDialog?.total || 0))}
+            </p>
+            <div>
+              <Label className="text-xs">Forma de Pagamento</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleGenerateReceipt}>
+              <Receipt className="h-4 w-4 mr-2" /> Gerar Recibo em PDF
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

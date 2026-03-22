@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, AlertTriangle, Edit2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,21 +18,30 @@ export default function InventoryPage() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    name: '', category: 'Papéis', quantity: 0, unit: 'folha', cost_per_unit: 0, min_stock: 5, supplier: '', supplier_contact: '', last_price: 0,
+    name: '', category: 'Papéis', quantity: 0, unit: 'folha', cost_per_unit: 0, min_stock: 5,
+    supplier: '', supplier_contact: '', last_price: 0,
+    total_paid: 0, package_qty: 1,
   });
   const [filterCat, setFilterCat] = useState('all');
 
+  // Auto-calculate cost_per_unit from total_paid / package_qty
+  useEffect(() => {
+    if (!editingId && form.package_qty > 0 && form.total_paid > 0) {
+      setForm(f => ({ ...f, cost_per_unit: +(f.total_paid / f.package_qty).toFixed(4) }));
+    }
+  }, [form.total_paid, form.package_qty, editingId]);
+
   const resetForm = () => {
-    setForm({ name: '', category: 'Papéis', quantity: 0, unit: 'folha', cost_per_unit: 0, min_stock: 5, supplier: '', supplier_contact: '', last_price: 0 });
+    setForm({ name: '', category: 'Papéis', quantity: 0, unit: 'folha', cost_per_unit: 0, min_stock: 5, supplier: '', supplier_contact: '', last_price: 0, total_paid: 0, package_qty: 1 });
     setEditingId(null);
   };
 
   const handleSave = () => {
     if (editingId) {
       const existing = materials.find(m => m.id === editingId)!;
-      update({ ...existing, ...form });
+      update({ ...existing, name: form.name, category: form.category, quantity: form.quantity, unit: form.unit, cost_per_unit: form.cost_per_unit, min_stock: form.min_stock, supplier: form.supplier, supplier_contact: form.supplier_contact, last_price: form.last_price });
     } else {
-      add(form);
+      add({ name: form.name, category: form.category, quantity: form.quantity, unit: form.unit, cost_per_unit: form.cost_per_unit, min_stock: form.min_stock, supplier: form.supplier, supplier_contact: form.supplier_contact, last_price: form.total_paid });
     }
     setOpen(false);
     resetForm();
@@ -42,7 +51,9 @@ export default function InventoryPage() {
     setForm({
       name: m.name, category: m.category, quantity: Number(m.quantity), unit: m.unit,
       cost_per_unit: Number(m.cost_per_unit), min_stock: Number(m.min_stock),
-      supplier: m.supplier || '', supplier_contact: m.supplier_contact || '', last_price: Number(m.last_price || 0),
+      supplier: m.supplier || '', supplier_contact: m.supplier_contact || '',
+      last_price: Number(m.last_price || 0),
+      total_paid: 0, package_qty: 1,
     });
     setEditingId(m.id);
     setOpen(true);
@@ -90,13 +101,35 @@ export default function InventoryPage() {
                   </Select>
                 </div>
               </div>
+
+              {!editingId && (
+                <div className="rounded-lg border border-primary/20 bg-primary/[0.03] p-3 space-y-3">
+                  <p className="text-xs font-medium text-primary">Cálculo automático do custo por unidade</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Valor Pago (R$)</Label>
+                      <Input type="number" step="0.01" value={form.total_paid || ''} onChange={e => setForm(f => ({ ...f, total_paid: +e.target.value }))} placeholder="Ex: 25.00" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Qtd no Pacote ({form.unit}s)</Label>
+                      <Input type="number" value={form.package_qty || ''} onChange={e => setForm(f => ({ ...f, package_qty: +e.target.value }))} placeholder="Ex: 50" />
+                    </div>
+                  </div>
+                  {form.total_paid > 0 && form.package_qty > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Custo calculado: <strong className="text-foreground">{formatCurrency(form.total_paid / form.package_qty)}</strong> por {form.unit}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs">Quantidade</Label>
+                  <Label className="text-xs">Quantidade em Estoque</Label>
                   <Input type="number" value={form.quantity || ''} onChange={e => setForm(f => ({ ...f, quantity: +e.target.value }))} />
                 </div>
                 <div>
-                  <Label className="text-xs">Custo/Unidade</Label>
+                  <Label className="text-xs">Custo/Unidade (R$)</Label>
                   <Input type="number" step="0.01" value={form.cost_per_unit || ''} onChange={e => setForm(f => ({ ...f, cost_per_unit: +e.target.value }))} />
                 </div>
                 <div>
