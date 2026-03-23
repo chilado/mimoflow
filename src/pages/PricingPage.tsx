@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { Plus, Trash2, PackagePlus } from 'lucide-react';
+import { useState, useMemo, useCallback, memo } from 'react';
+import { Plus, Trash2, PackagePlus, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePricingConfig, useMaterials, type FixedCost, type Material } from '@/hooks/useStore';
 import { formatCurrency, generateId } from '@/lib/store';
+import { toast } from 'sonner';
 
 interface MaterialCost {
   id: string;
@@ -16,10 +16,10 @@ interface MaterialCost {
   packageQty: number;
   packagePrice: number;
   usedQty: number;
-  materialId?: string; // linked inventory material
+  materialId?: string;
 }
 
-export default function PricingPage() {
+export default memo(function PricingPage() {
   const { config, loading, save } = usePricingConfig();
   const { materials: inventoryMaterials } = useMaterials();
 
@@ -31,16 +31,20 @@ export default function PricingPage() {
   const [quantity, setQuantity] = useState(1);
   const [showMaterialPicker, setShowMaterialPicker] = useState(false);
 
+  // Local state for fixed costs editing (save on button click)
+  const [localFixedCosts, setLocalFixedCosts] = useState<FixedCost[] | null>(null);
+
   const [initialized, setInitialized] = useState(false);
   if (config && !initialized) {
     setMargin(Number(config.default_margin));
     setTaxRate(Number(config.default_tax_rate));
+    setLocalFixedCosts((Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as unknown as FixedCost[]);
     setInitialized(true);
   }
 
   if (loading || !config) return <div className="p-8 text-muted-foreground">Carregando...</div>;
 
-  const fixedCosts: FixedCost[] = (Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as any;
+  const fixedCosts: FixedCost[] = localFixedCosts || (Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as unknown as FixedCost[];
 
   const hourlyRate = Number(config.monthly_work_hours) > 0
     ? Number(config.desired_monthly_salary) / Number(config.monthly_work_hours)
@@ -82,12 +86,19 @@ export default function PricingPage() {
     setMaterials(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
   };
 
+  // Fixed costs - local state, save on button click
   const addFixedCost = () => {
-    const updated = [...fixedCosts, { id: generateId(), name: '', monthlyCost: 0 }];
-    save({ ...config, fixed_costs: updated as any });
+    setLocalFixedCosts(prev => [...(prev || []), { id: generateId(), name: '', monthlyCost: 0 }]);
   };
   const removeFixedCost = (id: string) => {
-    save({ ...config, fixed_costs: fixedCosts.filter(c => c.id !== id) as any });
+    setLocalFixedCosts(prev => (prev || []).filter(c => c.id !== id));
+  };
+  const updateFixedCost = (id: string, field: keyof FixedCost, value: string | number) => {
+    setLocalFixedCosts(prev => (prev || []).map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+  const handleSaveFixedCosts = async () => {
+    await save({ ...config, fixed_costs: fixedCosts as any });
+    toast.success('Custos fixos salvos!');
   };
 
   return (
@@ -101,18 +112,9 @@ export default function PricingPage() {
         <Card className="animate-fade-up stagger-1">
           <CardHeader className="pb-3"><CardTitle className="text-base">Configurações Gerais</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Salário Desejado/Mês</Label>
-                <Input type="number" value={config.desired_monthly_salary} onChange={e => save({ ...config, desired_monthly_salary: +e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-xs">Horas/Mês de Trabalho</Label>
-                <Input type="number" value={config.monthly_work_hours} onChange={e => save({ ...config, monthly_work_hours: +e.target.value })} />
-              </div>
-            </div>
             <div className="text-sm text-muted-foreground">
               Valor da sua hora: <strong className="text-foreground">{formatCurrency(hourlyRate)}</strong>
+              <span className="text-xs ml-2">(ajuste em Configurações)</span>
             </div>
             <Separator />
             <div>
@@ -122,13 +124,18 @@ export default function PricingPage() {
               </div>
               {fixedCosts.map(c => (
                 <div key={c.id} className="flex gap-2 mb-2">
-                  <Input placeholder="Nome" value={c.name} className="text-sm" onChange={e => save({ ...config, fixed_costs: fixedCosts.map(x => x.id === c.id ? { ...x, name: e.target.value } : x) as any })} />
-                  <Input type="number" placeholder="R$" value={c.monthlyCost || ''} className="w-28 text-sm" onChange={e => save({ ...config, fixed_costs: fixedCosts.map(x => x.id === c.id ? { ...x, monthlyCost: +e.target.value } : x) as any })} />
+                  <Input placeholder="Nome" value={c.name} className="text-sm" maxLength={60} onChange={e => updateFixedCost(c.id, 'name', e.target.value)} />
+                  <Input type="number" placeholder="R$" value={c.monthlyCost || ''} className="w-28 text-sm" min={0} onChange={e => updateFixedCost(c.id, 'monthlyCost', +e.target.value)} />
                   <Button variant="ghost" size="icon" onClick={() => removeFixedCost(c.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               ))}
               {fixedCosts.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">Total: {formatCurrency(totalFixedCosts)}/mês — {formatCurrency(fixedCostPerHour)}/hora</p>
+                <>
+                  <p className="text-xs text-muted-foreground mt-1">Total: {formatCurrency(totalFixedCosts)}/mês — {formatCurrency(fixedCostPerHour)}/hora</p>
+                  <Button size="sm" className="mt-2" onClick={handleSaveFixedCosts}>
+                    <Save className="h-3.5 w-3.5 mr-1.5" /> Salvar Custos Fixos
+                  </Button>
+                </>
               )}
             </div>
           </CardContent>
@@ -161,28 +168,28 @@ export default function PricingPage() {
       <Card className="animate-fade-up stagger-3">
         <CardHeader className="pb-3"><CardTitle className="text-base">Calcular Produto</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-4 gap-3">
-            <div className="sm:col-span-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="col-span-2">
               <Label className="text-xs">Nome do Produto</Label>
-              <Input value={productName} onChange={e => setProductName(e.target.value)} placeholder="Ex: Kit Festa Safari" />
+              <Input value={productName} onChange={e => setProductName(e.target.value)} placeholder="Ex: Kit Festa Safari" maxLength={100} />
             </div>
             <div>
               <Label className="text-xs">Tempo Produção (min)</Label>
-              <Input type="number" value={productionMinutes} onChange={e => setProductionMinutes(+e.target.value)} />
+              <Input type="number" value={productionMinutes} onChange={e => setProductionMinutes(+e.target.value)} min={0} />
             </div>
             <div>
               <Label className="text-xs">Quantidade</Label>
-              <Input type="number" value={quantity} onChange={e => setQuantity(Math.max(1, +e.target.value))} />
+              <Input type="number" value={quantity} onChange={e => setQuantity(Math.max(1, +e.target.value))} min={1} />
             </div>
           </div>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Margem de Lucro (%)</Label>
-              <Input type="number" value={margin} onChange={e => setMargin(+e.target.value)} />
+              <Input type="number" value={margin} onChange={e => setMargin(+e.target.value)} min={0} />
             </div>
             <div>
               <Label className="text-xs">Impostos / Taxas de Cartão (%)</Label>
-              <Input type="number" value={taxRate} onChange={e => setTaxRate(+e.target.value)} />
+              <Input type="number" value={taxRate} onChange={e => setTaxRate(+e.target.value)} min={0} />
             </div>
           </div>
           <Separator />
@@ -201,19 +208,19 @@ export default function PricingPage() {
             <div key={m.id} className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 items-end">
               <div>
                 <Label className="text-[11px] text-muted-foreground">Material {m.materialId ? '(estoque)' : ''}</Label>
-                <Input className="text-sm" value={m.name} onChange={e => updateMaterial(m.id, 'name', e.target.value)} placeholder="Papel kraft" readOnly={!!m.materialId} />
+                <Input className="text-sm" value={m.name} onChange={e => updateMaterial(m.id, 'name', e.target.value)} placeholder="Papel kraft" readOnly={!!m.materialId} maxLength={60} />
               </div>
               <div>
                 <Label className="text-[11px] text-muted-foreground">Qtd Pacote</Label>
-                <Input className="text-sm" type="number" value={m.packageQty || ''} onChange={e => updateMaterial(m.id, 'packageQty', +e.target.value)} />
+                <Input className="text-sm" type="number" value={m.packageQty || ''} onChange={e => updateMaterial(m.id, 'packageQty', +e.target.value)} min={0} />
               </div>
               <div>
                 <Label className="text-[11px] text-muted-foreground">R$ Pacote</Label>
-                <Input className="text-sm" type="number" value={m.packagePrice || ''} onChange={e => updateMaterial(m.id, 'packagePrice', +e.target.value)} />
+                <Input className="text-sm" type="number" value={m.packagePrice || ''} onChange={e => updateMaterial(m.id, 'packagePrice', +e.target.value)} min={0} />
               </div>
               <div>
                 <Label className="text-[11px] text-muted-foreground">Qtd Usada</Label>
-                <Input className="text-sm" type="number" value={m.usedQty || ''} onChange={e => updateMaterial(m.id, 'usedQty', +e.target.value)} />
+                <Input className="text-sm" type="number" value={m.usedQty || ''} onChange={e => updateMaterial(m.id, 'usedQty', +e.target.value)} min={0} />
               </div>
               <Button variant="ghost" size="icon" className="h-9" onClick={() => removeMaterial(m.id)}><Trash2 className="h-3 w-3" /></Button>
             </div>
@@ -260,4 +267,4 @@ export default function PricingPage() {
       </Dialog>
     </div>
   );
-}
+});
