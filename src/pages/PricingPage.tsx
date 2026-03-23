@@ -38,7 +38,7 @@ export default memo(function PricingPage() {
   if (config && !initialized) {
     setMargin(Number(config.default_margin));
     setTaxRate(Number(config.default_tax_rate));
-    setLocalFixedCosts((Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as FixedCost[]);
+    setLocalFixedCosts((Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as unknown as FixedCost[]);
     setInitialized(true);
   }
 
