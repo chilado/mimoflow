@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, memo } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,23 +9,19 @@ import { format, isSameDay, isToday, isBefore, startOfDay, differenceInDays } fr
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 
 const STATUS_COLORS: Record<string, string> = {
-  awaiting_payment: 'bg-amber-500',
-  awaiting_art: 'bg-orange-400',
-  art_approved: 'bg-blue-500',
-  in_production: 'bg-violet-500',
-  finished: 'bg-emerald-500',
+  awaiting_payment: 'bg-warning',
+  awaiting_art: 'bg-accent',
+  art_approved: 'bg-info',
+  in_production: 'bg-primary',
+  finished: 'bg-success',
   delivered: 'bg-muted-foreground',
 };
 
-const FILTER_OPTIONS: { value: string; label: string }[] = [
+const FILTER_OPTIONS = [
   { value: 'all', label: 'Todos os status' },
   { value: 'pending', label: '⏳ Pendentes (não entregues)' },
   { value: 'in_production', label: '🔧 Em Produção' },
@@ -36,18 +32,14 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'delivered', label: '🚚 Entregue' },
 ];
 
-export default function AgendaPage() {
+export default memo(function AgendaPage() {
   const { orders } = useOrders();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [statusFilter, setStatusFilter] = useState('all');
   const [notified, setNotified] = useState(false);
 
-  const ordersWithDate = useMemo(
-    () => orders.filter((o) => o.delivery_date),
-    [orders],
-  );
+  const ordersWithDate = useMemo(() => orders.filter((o) => o.delivery_date), [orders]);
 
-  // Apply status filter
   const filteredOrders = useMemo(() => {
     if (statusFilter === 'all') return ordersWithDate;
     if (statusFilter === 'pending')
@@ -55,7 +47,6 @@ export default function AgendaPage() {
     return ordersWithDate.filter((o) => o.status === statusFilter);
   }, [ordersWithDate, statusFilter]);
 
-  // Deadline notifications (3 days before)
   useEffect(() => {
     if (notified || ordersWithDate.length === 0) return;
     const today = startOfDay(new Date());
@@ -69,12 +60,7 @@ export default function AgendaPage() {
       upcoming.forEach((o) => {
         const d = new Date(o.delivery_date! + 'T12:00:00');
         const diff = differenceInDays(d, today);
-        const label =
-          diff === 0
-            ? 'HOJE'
-            : diff === 1
-              ? 'amanhã'
-              : `em ${diff} dias`;
+        const label = diff === 0 ? 'HOJE' : diff === 1 ? 'amanhã' : `em ${diff} dias`;
         toast.warning(`⏰ Entrega ${label}`, {
           description: `${o.client_name} — ${o.event_theme}`,
           duration: 8000,
@@ -84,7 +70,6 @@ export default function AgendaPage() {
     }
   }, [ordersWithDate, notified]);
 
-  // Dates that have deliveries (filtered)
   const deliveryDates = useMemo(() => {
     const map = new Map<string, number>();
     filteredOrders.forEach((o) => {
@@ -94,7 +79,6 @@ export default function AgendaPage() {
     return map;
   }, [filteredOrders]);
 
-  // Orders for the selected day (filtered)
   const dayOrders = useMemo(() => {
     if (!selectedDate) return [];
     return filteredOrders.filter((o) =>
@@ -102,18 +86,14 @@ export default function AgendaPage() {
     );
   }, [selectedDate, filteredOrders]);
 
-  // Overdue orders (always from full set)
   const overdueOrders = useMemo(() => {
     const today = startOfDay(new Date());
     return ordersWithDate.filter(
-      (o) =>
-        o.status !== 'delivered' &&
-        o.status !== 'finished' &&
+      (o) => o.status !== 'delivered' && o.status !== 'finished' &&
         isBefore(new Date(o.delivery_date! + 'T12:00:00'), today),
     );
   }, [ordersWithDate]);
 
-  // Upcoming 3-day alerts count
   const upcomingCount = useMemo(() => {
     const today = startOfDay(new Date());
     return ordersWithDate.filter((o) => {
@@ -123,7 +103,6 @@ export default function AgendaPage() {
     }).length;
   }, [ordersWithDate]);
 
-  // Week summary
   const weekSummary = useMemo(() => {
     const now = new Date();
     const weekEnd = new Date(now);
@@ -134,49 +113,36 @@ export default function AgendaPage() {
     }).length;
   }, [ordersWithDate]);
 
-  // Custom day rendering modifiers
   const modifiers = useMemo(() => {
     const dates: Date[] = [];
-    deliveryDates.forEach((_, key) => {
-      dates.push(new Date(key + 'T12:00:00'));
-    });
+    deliveryDates.forEach((_, key) => dates.push(new Date(key + 'T12:00:00')));
     return { delivery: dates };
   }, [deliveryDates]);
 
-  const modifiersStyles = {
-    delivery: { fontWeight: 700 } as React.CSSProperties,
-  };
+  const modifiersStyles = { delivery: { fontWeight: 700 } as React.CSSProperties };
 
   return (
     <div className="space-y-6 max-w-6xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-primary" />
-            Agenda de Entregas
+            <CalendarDays className="h-6 w-6 text-primary" /> Agenda de Entregas
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Visualize seus prazos e evite sobrecarga de trabalho
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Visualize seus prazos e evite sobrecarga</p>
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {FILTER_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
@@ -189,7 +155,7 @@ export default function AgendaPage() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <Bell className={`h-5 w-5 ${upcomingCount > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
+            <Bell className={`h-5 w-5 ${upcomingCount > 0 ? 'text-warning' : 'text-muted-foreground'}`} />
             <div>
               <p className="text-xs text-muted-foreground">Próximos 3 dias</p>
               <p className="text-xl font-bold font-heading">{upcomingCount}</p>
@@ -207,7 +173,7 @@ export default function AgendaPage() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <CheckCircle2 className="h-5 w-5 text-success" />
             <div>
               <p className="text-xs text-muted-foreground">Total com data</p>
               <p className="text-xl font-bold font-heading">{ordersWithDate.length}</p>
@@ -217,7 +183,6 @@ export default function AgendaPage() {
       </div>
 
       <div className="grid md:grid-cols-[auto_1fr] gap-6">
-        {/* Calendar */}
         <Card className="w-fit">
           <CardContent className="p-4">
             <Calendar
@@ -231,24 +196,13 @@ export default function AgendaPage() {
                 DayContent: ({ date }) => {
                   const key = format(date, 'yyyy-MM-dd');
                   const count = deliveryDates.get(key);
-                  const overdue =
-                    count &&
-                    isBefore(date, startOfDay(new Date())) &&
-                    ordersWithDate.some(
-                      (o) =>
-                        o.delivery_date === key &&
-                        o.status !== 'delivered' &&
-                        o.status !== 'finished',
-                    );
+                  const overdue = count && isBefore(date, startOfDay(new Date())) &&
+                    ordersWithDate.some((o) => o.delivery_date === key && o.status !== 'delivered' && o.status !== 'finished');
                   return (
                     <div className="relative flex items-center justify-center w-full h-full">
                       <span>{date.getDate()}</span>
                       {count && (
-                        <span
-                          className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full ${
-                            overdue ? 'bg-destructive' : 'bg-primary'
-                          }`}
-                        />
+                        <span className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full ${overdue ? 'bg-destructive' : 'bg-primary'}`} />
                       )}
                     </div>
                   );
@@ -258,7 +212,6 @@ export default function AgendaPage() {
           </CardContent>
         </Card>
 
-        {/* Day details */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
@@ -271,35 +224,24 @@ export default function AgendaPage() {
           </CardHeader>
           <CardContent>
             {dayOrders.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                Nenhuma entrega nesta data
-              </p>
+              <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma entrega nesta data</p>
             ) : (
               <div className="space-y-3">
                 {dayOrders.map((o) => (
-                  <div
-                    key={o.id}
-                    className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
-                  >
-                    <span
-                      className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${STATUS_COLORS[o.status] || 'bg-muted-foreground'}`}
-                    />
+                  <div key={o.id} className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40">
+                    <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${STATUS_COLORS[o.status] || 'bg-muted-foreground'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{o.client_name}</p>
                       <p className="text-xs text-muted-foreground truncate">{o.event_theme}</p>
                       {o.personalization && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          🎨 {o.personalization}
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">🎨 {o.personalization}</p>
                       )}
                     </div>
                     <div className="text-right shrink-0">
                       <Badge variant="outline" className="text-[10px]">
                         {ORDER_STATUS_LABELS[o.status as OrderStatus]}
                       </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatCurrency(Number(o.total))}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{formatCurrency(Number(o.total))}</p>
                     </div>
                   </div>
                 ))}
@@ -309,7 +251,6 @@ export default function AgendaPage() {
         </Card>
       </div>
 
-      {/* Overdue section */}
       {overdueOrders.length > 0 && (
         <Card className="border-destructive/30">
           <CardHeader className="pb-3">
@@ -320,10 +261,7 @@ export default function AgendaPage() {
           <CardContent>
             <div className="space-y-2">
               {overdueOrders.map((o) => (
-                <div
-                  key={o.id}
-                  className="flex items-center justify-between text-sm rounded-md bg-destructive/10 px-3 py-2"
-                >
+                <div key={o.id} className="flex items-center justify-between text-sm rounded-md bg-destructive/10 px-3 py-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-medium truncate">{o.client_name}</span>
                     <span className="text-muted-foreground truncate">— {o.event_theme}</span>
@@ -339,4 +277,4 @@ export default function AgendaPage() {
       )}
     </div>
   );
-}
+});
