@@ -44,7 +44,7 @@ export default memo(function PricingPage() {
 
   if (loading || !config) return <div className="p-8 text-muted-foreground">Carregando...</div>;
 
-  const fixedCosts: FixedCost[] = localFixedCosts || (Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as FixedCost[];
+  const fixedCosts: FixedCost[] = localFixedCosts || (Array.isArray(config.fixed_costs) ? config.fixed_costs : []) as unknown as FixedCost[];
 
   const hourlyRate = Number(config.monthly_work_hours) > 0
     ? Number(config.desired_monthly_salary) / Number(config.monthly_work_hours)

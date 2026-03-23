@@ -40,8 +40,6 @@ export default memo(function SettingsPage() {
     setConfigInit(true);
   }
 
-  if (configLoading || profileLoading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
-
   const handleSaveProfile = useCallback(async () => {
     await saveProfile({ company_name: companyName.trim(), company_phone: companyPhone.trim() });
     toast.success('Perfil da empresa atualizado!');
@@ -58,6 +56,8 @@ export default memo(function SettingsPage() {
     });
     toast.success('Configurações de precificação salvas!');
   }, [config, salary, hours, marginVal, taxVal, saveConfig]);
+
+  if (configLoading || profileLoading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
 
   const hourlyRate = (+hours || 0) > 0 ? (+salary || 0) / (+hours) : 0;
 
