@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, memo } from 'react';
 import { Plus, Trash2, PackagePlus, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,13 +28,14 @@ export default memo(function PricingPage() {
   const [productionMinutes, setProductionMinutes] = useState(30);
   const [margin, setMargin] = useState(30);
   const [taxRate, setTaxRate] = useState(6);
+  const [platformFee, setPlatformFee] = useState(0);
+  const [cardFee, setCardFee] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showMaterialPicker, setShowMaterialPicker] = useState(false);
 
-  // Local state for fixed costs editing (save on button click)
   const [localFixedCosts, setLocalFixedCosts] = useState<FixedCost[] | null>(null);
-
   const [initialized, setInitialized] = useState(false);
+
   if (config && !initialized) {
     setMargin(Number(config.default_margin));
     setTaxRate(Number(config.default_tax_rate));
@@ -62,10 +63,11 @@ export default memo(function PricingPage() {
   const fixedCostAlloc = (productionMinutes / 60) * fixedCostPerHour;
   const baseCost = materialsCost + laborCost + fixedCostAlloc;
   const markupMultiplier = 1 + margin / 100;
-  const priceBeforeTax = baseCost * markupMultiplier;
-  const taxAmount = priceBeforeTax * (taxRate / 100);
-  const finalPrice = priceBeforeTax + taxAmount;
-  const profit = finalPrice - baseCost - taxAmount;
+  const priceBeforeFees = baseCost * markupMultiplier;
+  const totalFeeRate = taxRate + platformFee + cardFee;
+  const feeAmount = priceBeforeFees * (totalFeeRate / 100);
+  const finalPrice = priceBeforeFees + feeAmount;
+  const profit = finalPrice - baseCost - feeAmount;
 
   const addManualMaterial = () => setMaterials(prev => [...prev, { id: generateId(), name: '', packageQty: 1, packagePrice: 0, usedQty: 1 }]);
 
@@ -86,7 +88,6 @@ export default memo(function PricingPage() {
     setMaterials(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
   };
 
-  // Fixed costs - local state, save on button click
   const addFixedCost = () => {
     setLocalFixedCosts(prev => [...(prev || []), { id: generateId(), name: '', monthlyCost: 0 }]);
   };
@@ -124,7 +125,7 @@ export default memo(function PricingPage() {
               </div>
               {fixedCosts.map(c => (
                 <div key={c.id} className="flex gap-2 mb-2">
-                  <Input placeholder="Nome" value={c.name} className="text-sm" maxLength={60} onChange={e => updateFixedCost(c.id, 'name', e.target.value)} />
+                  <Input placeholder="Nome (ex: Aluguel)" value={c.name} className="text-sm" maxLength={60} onChange={e => updateFixedCost(c.id, 'name', e.target.value)} />
                   <Input type="number" placeholder="R$" value={c.monthlyCost || ''} className="w-28 text-sm" min={0} onChange={e => updateFixedCost(c.id, 'monthlyCost', +e.target.value)} />
                   <Button variant="ghost" size="icon" onClick={() => removeFixedCost(c.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
@@ -147,16 +148,24 @@ export default memo(function PricingPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Custo de Materiais</span><span>{formatCurrency(materialsCost)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Mão de Obra ({productionMinutes}min)</span><span>{formatCurrency(laborCost)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Custos Fixos (rateio)</span><span>{formatCurrency(fixedCostAlloc)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Custos Fixos (rateio por hora)</span><span>{formatCurrency(fixedCostAlloc)}</span></div>
+              {fixedCosts.length > 0 && fixedCosts.map(c => (
+                <div key={c.id} className="flex justify-between text-xs pl-3 text-muted-foreground">
+                  <span>↳ {c.name}</span>
+                  <span>{formatCurrency((c.monthlyCost / (Number(config.monthly_work_hours) || 1)) * (productionMinutes / 60))}</span>
+                </div>
+              ))}
               <Separator />
               <div className="flex justify-between font-medium"><span>Custo Total</span><span>{formatCurrency(baseCost)}</span></div>
               <div className="flex justify-between text-muted-foreground"><span>Margem de Lucro ({margin}%)</span><span>+{formatCurrency(baseCost * margin / 100)}</span></div>
-              <div className="flex justify-between text-muted-foreground"><span>Impostos/Taxas ({taxRate}%)</span><span>+{formatCurrency(taxAmount)}</span></div>
+              {taxRate > 0 && <div className="flex justify-between text-muted-foreground"><span>Impostos ({taxRate}%)</span><span>+{formatCurrency(priceBeforeFees * taxRate / 100)}</span></div>}
+              {platformFee > 0 && <div className="flex justify-between text-muted-foreground"><span>Taxa da Plataforma ({platformFee}%)</span><span>+{formatCurrency(priceBeforeFees * platformFee / 100)}</span></div>}
+              {cardFee > 0 && <div className="flex justify-between text-muted-foreground"><span>Taxa do Cartão ({cardFee}%)</span><span>+{formatCurrency(priceBeforeFees * cardFee / 100)}</span></div>}
               <Separator />
               <div className="flex justify-between text-lg font-bold text-primary"><span>Preço de Venda</span><span>{formatCurrency(finalPrice)}</span></div>
               <div className="flex justify-between text-sm text-success"><span>Lucro Líquido</span><span>{formatCurrency(profit)}</span></div>
               {quantity > 1 && (
-                <div className="flex justify-between text-sm font-medium mt-2 pt-2 border-t">
+                <div className="flex justify-between text-sm font-medium mt-2 pt-2 border-t border-border">
                   <span>Total ({quantity} unid.)</span><span>{formatCurrency(finalPrice * quantity)}</span>
                 </div>
               )}
@@ -182,14 +191,22 @@ export default memo(function PricingPage() {
               <Input type="number" value={quantity} onChange={e => setQuantity(Math.max(1, +e.target.value))} min={1} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <Label className="text-xs">Margem de Lucro (%)</Label>
               <Input type="number" value={margin} onChange={e => setMargin(+e.target.value)} min={0} />
             </div>
             <div>
-              <Label className="text-xs">Impostos / Taxas de Cartão (%)</Label>
+              <Label className="text-xs">Impostos (%)</Label>
               <Input type="number" value={taxRate} onChange={e => setTaxRate(+e.target.value)} min={0} />
+            </div>
+            <div>
+              <Label className="text-xs">Taxa Plataforma (%)</Label>
+              <Input type="number" value={platformFee} onChange={e => setPlatformFee(+e.target.value)} min={0} placeholder="Elo7, Shopee..." />
+            </div>
+            <div>
+              <Label className="text-xs">Taxa Cartão/Maquininha (%)</Label>
+              <Input type="number" value={cardFee} onChange={e => setCardFee(+e.target.value)} min={0} placeholder="Ex: 4.99" />
             </div>
           </div>
           <Separator />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, Image, List } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, Trash2, Edit2, Image, List, X, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,9 @@ export default function ProductsPage() {
   const [addMatId, setAddMatId] = useState('');
   const [addMatQty, setAddMatQty] = useState(1);
 
+  // Lightbox state
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
+
   const resetForm = () => { setForm({ name: '', description: '', base_price: 0 }); setEditingId(null); };
 
   const handleSave = async () => {
@@ -45,18 +48,27 @@ export default function ProductsPage() {
     setOpen(true);
   };
 
-  const handleImageUpload = async (productId: string, file: File) => {
+  const handleImageUpload = async (productId: string, files: FileList) => {
     if (!user) return;
-    const path = `${user.id}/${productId}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from('product-images').upload(path, file);
-    if (error) { toast.error('Erro ao enviar imagem'); return; }
-    const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
     const product = products.find(p => p.id === productId);
-    if (product) {
-      const currentImages = (Array.isArray(product.images) ? product.images : []) as string[];
-      update({ ...product, images: [...currentImages, publicUrl] as any });
+    if (!product) return;
+
+    const currentImages = (Array.isArray(product.images) ? product.images : []) as string[];
+    const newUrls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      if (file.size > 5 * 1024 * 1024) { toast.error(`${file.name} é muito grande (máx 5MB)`); continue; }
+      const path = `${user.id}/${productId}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from('product-images').upload(path, file);
+      if (error) { toast.error(`Erro ao enviar ${file.name}`); continue; }
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
+      newUrls.push(publicUrl);
     }
-    toast.success('Imagem adicionada!');
+
+    if (newUrls.length > 0) {
+      update({ ...product, images: [...currentImages, ...newUrls] as any });
+      toast.success(`${newUrls.length} imagem(ns) adicionada(s)!`);
+    }
   };
 
   const removeImage = (product: Product, imgUrl: string) => {
@@ -70,6 +82,14 @@ export default function ProductsPage() {
     setAddMatId('');
     setAddMatQty(1);
     toast.success('Material adicionado à ficha técnica!');
+  };
+
+  // Calculate total material cost for a product
+  const getProductMaterialCost = () => {
+    return prodMaterials.reduce((sum, pm) => {
+      const mat = materials.find(m => m.id === pm.material_id);
+      return sum + (mat ? Number(mat.cost_per_unit) * Number(pm.quantity_used) : 0);
+    }, 0);
   };
 
   return (
@@ -88,15 +108,15 @@ export default function ProductsPage() {
             <div className="space-y-4">
               <div>
                 <Label className="text-xs">Nome</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Kit Festa Safari" />
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Kit Festa Safari" maxLength={100} />
               </div>
               <div>
                 <Label className="text-xs">Descrição</Label>
-                <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Inclui caixas, bandejas..." />
+                <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Inclui caixas, bandejas..." maxLength={500} />
               </div>
               <div>
                 <Label className="text-xs">Preço Base (R$)</Label>
-                <Input type="number" value={form.base_price || ''} onChange={e => setForm(f => ({ ...f, base_price: +e.target.value }))} />
+                <Input type="number" value={form.base_price || ''} onChange={e => setForm(f => ({ ...f, base_price: +e.target.value }))} min={0} />
               </div>
               <Button className="w-full" onClick={handleSave} disabled={!form.name}>
                 {editingId ? 'Salvar' : 'Cadastrar'}
@@ -134,21 +154,31 @@ export default function ProductsPage() {
                   </div>
 
                   {/* Gallery */}
-                  <div className="mt-3 flex gap-2 flex-wrap items-center">
-                    {images.map((img, i) => (
-                      <div key={i} className="relative group">
-                        <img src={img} alt="" className="h-20 w-20 object-cover rounded-md border" />
-                        <button
-                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-5 w-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeImage(product, img)}
-                        >×</button>
+                  <div className="mt-3">
+                    {images.length > 0 && (
+                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-2">
+                        {images.map((img, i) => (
+                          <div key={i} className="relative group aspect-square">
+                            <img
+                              src={img}
+                              alt={`${product.name} foto ${i + 1}`}
+                              className="h-full w-full object-cover rounded-md border cursor-pointer hover:opacity-90 transition-opacity"
+                              loading="lazy"
+                              onClick={() => setLightbox({ images, index: i })}
+                            />
+                            <button
+                              className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-5 w-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => { e.stopPropagation(); removeImage(product, img); }}
+                            >×</button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                    <label className="h-20 w-20 rounded-md border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
-                      <Image className="h-5 w-5 text-muted-foreground" />
-                      <input type="file" accept="image/*" className="hidden" onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(product.id, file);
+                    )}
+                    <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors text-xs text-muted-foreground">
+                      <Upload className="h-4 w-4" />
+                      Adicionar fotos
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                        if (e.target.files?.length) handleImageUpload(product.id, e.target.files);
                         e.target.value = '';
                       }} />
                     </label>
@@ -160,14 +190,25 @@ export default function ProductsPage() {
                       <h4 className="text-sm font-medium">Ficha Técnica — Materiais</h4>
                       {prodMaterials.length > 0 ? (
                         <div className="space-y-1">
-                          {prodMaterials.map(pm => (
-                            <div key={pm.id} className="flex items-center justify-between text-sm">
-                              <span>{pm.material_name} — {pm.quantity_used} {pm.unit}</span>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeProdMat(pm.id)}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
+                          {prodMaterials.map(pm => {
+                            const mat = materials.find(m => m.id === pm.material_id);
+                            const cost = mat ? Number(mat.cost_per_unit) * Number(pm.quantity_used) : 0;
+                            return (
+                              <div key={pm.id} className="flex items-center justify-between text-sm">
+                                <span>{pm.material_name} — {pm.quantity_used} {pm.unit}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">{formatCurrency(cost)}</span>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeProdMat(pm.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div className="flex justify-between text-sm font-medium pt-2 border-t border-border">
+                            <span>Custo Total dos Materiais</span>
+                            <span className="text-primary">{formatCurrency(getProductMaterialCost())}</span>
+                          </div>
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground">Nenhum material adicionado.</p>
@@ -178,13 +219,13 @@ export default function ProductsPage() {
                           <Select value={addMatId} onValueChange={setAddMatId}>
                             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                             <SelectContent>
-                              {materials.map(m => <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>)}
+                              {materials.map(m => <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit}) — {formatCurrency(Number(m.cost_per_unit))}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="w-20">
                           <Label className="text-[11px]">Qtd</Label>
-                          <Input className="h-8 text-xs" type="number" value={addMatQty} onChange={e => setAddMatQty(+e.target.value)} />
+                          <Input className="h-8 text-xs" type="number" value={addMatQty} onChange={e => setAddMatQty(+e.target.value)} min={0.01} step={0.1} />
                         </div>
                         <Button size="sm" className="h-8" onClick={handleAddMaterial} disabled={!addMatId}>
                           <Plus className="h-3 w-3" />
@@ -198,6 +239,41 @@ export default function ProductsPage() {
           })
         )}
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center" onClick={() => setLightbox(null)}>
+          <button className="absolute top-4 right-4 text-foreground/70 hover:text-foreground" onClick={() => setLightbox(null)}>
+            <X className="h-6 w-6" />
+          </button>
+          <div className="relative max-w-[90vw] max-h-[85vh] flex items-center" onClick={e => e.stopPropagation()}>
+            {lightbox.images.length > 1 && (
+              <button
+                className="absolute -left-12 p-2 rounded-full bg-card border text-foreground hover:bg-accent transition-colors"
+                onClick={() => setLightbox(prev => prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null)}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+            <img
+              src={lightbox.images[lightbox.index]}
+              alt=""
+              className="max-w-full max-h-[85vh] object-contain rounded-lg"
+            />
+            {lightbox.images.length > 1 && (
+              <button
+                className="absolute -right-12 p-2 rounded-full bg-card border text-foreground hover:bg-accent transition-colors"
+                onClick={() => setLightbox(prev => prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null)}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          <div className="absolute bottom-4 text-sm text-muted-foreground">
+            {lightbox.index + 1} / {lightbox.images.length}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
