@@ -205,7 +205,7 @@ export default function OrdersPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3 flex-wrap">
-                    <Select value={order.status} onValueChange={(v) => update({ ...order, status: v })}>
+                    <Select value={order.status} onValueChange={(v) => { const prev = order.status; update({ ...order, status: v }, prev); }}>
                       <SelectTrigger className="h-8 text-xs w-48"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {statusOptions.map(s => <SelectItem key={s} value={s}>{ORDER_STATUS_LABELS[s]}</SelectItem>)}
