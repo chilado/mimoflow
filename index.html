@@ -1,30 +1,37 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
-    <meta name="description" content="Lovable Generated Project">
-    <meta name="author" content="Lovable" />
+    <title>PapelariaApp — Gestão Inteligente</title>
+    <meta name="description" content="Gestão inteligente para empreendedores de papelaria personalizada. Precificação, pedidos, estoque e financeiro.">
+    <meta name="author" content="PapelariaApp" />
+    <meta name="theme-color" content="#8b5cf6" />
 
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f102f424-29fe-45fb-bc35-abf61437a11c/id-preview-afe93d0a--8551fe0f-46a5-4e91-92a1-69d6326669f7.lovable.app-1774026606116.png">
-
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f102f424-29fe-45fb-bc35-abf61437a11c/id-preview-afe93d0a--8551fe0f-46a5-4e91-92a1-69d6326669f7.lovable.app-1774026606116.png">
-    <meta property="og:title" content="Lovable App">
-  <meta name="twitter:title" content="Lovable App">
-  <meta property="og:description" content="Lovable Generated Project">
-  <meta name="twitter:description" content="Lovable Generated Project">
-</head>
+    <meta property="og:title" content="PapelariaApp — Gestão Inteligente">
+    <meta name="twitter:title" content="PapelariaApp — Gestão Inteligente">
+    <meta property="og:description" content="Gestão inteligente para empreendedores de papelaria personalizada.">
+    <meta name="twitter:description" content="Gestão inteligente para empreendedores de papelaria personalizada.">
+  </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>
