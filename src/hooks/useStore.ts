@@ -106,6 +106,43 @@ export function useOrders() {
   const { user } = useAuth();
   const { data: orders, loading, refresh } = useSupabaseTable<Order>('orders');
 
+  const deductStock = async (orderItems: OrderItem[]) => {
+    if (!user) return;
+    // For each order item, find a matching product and its materials
+    for (const item of orderItems) {
+      const { data: products } = await supabase
+        .from('products')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('name', item.name)
+        .limit(1);
+
+      if (!products?.length) continue;
+
+      const { data: productMaterials } = await supabase
+        .from('product_materials')
+        .select('material_id, quantity_used')
+        .eq('product_id', products[0].id);
+
+      if (!productMaterials?.length) continue;
+
+      for (const pm of productMaterials) {
+        const totalDeduct = pm.quantity_used * item.quantity;
+        // Use raw rpc or direct update to subtract quantity
+        const { data: mat } = await supabase
+          .from('materials')
+          .select('quantity')
+          .eq('id', pm.material_id)
+          .single();
+
+        if (mat) {
+          const newQty = Math.max(0, Number(mat.quantity) - totalDeduct);
+          await supabase.from('materials').update({ quantity: newQty }).eq('id', pm.material_id);
+        }
+      }
+    }
+  };
+
   const add = async (o: {
     client_id?: string | null; client_name: string; event_theme: string;
     delivery_date?: string | null; items: OrderItem[]; status: string;
@@ -120,13 +157,20 @@ export function useOrders() {
     refresh();
   };
 
-  const update = async (o: Order) => {
+  const update = async (o: Order, previousStatus?: string) => {
     await supabase.from('orders').update({
       client_name: o.client_name, event_theme: o.event_theme,
       delivery_date: o.delivery_date, items: o.items,
       status: o.status, art_approved: o.art_approved,
       art_notes: o.art_notes, personalization: o.personalization, total: o.total,
     }).eq('id', o.id);
+
+    // Auto-deduct stock when status changes to "finished"
+    if (o.status === 'finished' && previousStatus && previousStatus !== 'finished') {
+      const items = (Array.isArray(o.items) ? o.items : []) as unknown as OrderItem[];
+      await deductStock(items);
+    }
+
     refresh();
   };
 
