@@ -284,4 +284,4 @@ export default function PricingPage() {
       </Dialog>
     </div>
   );
-});
+}
