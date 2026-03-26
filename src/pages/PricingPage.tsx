@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, PackagePlus, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ interface MaterialCost {
   materialId?: string;
 }
 
-export default memo(function PricingPage() {
+export default function PricingPage() {
   const { config, loading, save } = usePricingConfig();
   const { materials: inventoryMaterials } = useMaterials();
 
@@ -284,4 +284,4 @@ export default memo(function PricingPage() {
       </Dialog>
     </div>
   );
-});
+}

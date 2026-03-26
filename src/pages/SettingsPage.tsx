@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { formatCurrency } from '@/lib/store';
 import { toast } from 'sonner';
 import { Save } from 'lucide-react';
 
-export default memo(function SettingsPage() {
+export default function SettingsPage() {
   const { config, loading: configLoading, save: saveConfig } = usePricingConfig();
   const { profile, loading: profileLoading, save: saveProfile } = useProfile();
   const { user } = useAuth();
@@ -140,4 +140,4 @@ export default memo(function SettingsPage() {
       </Card>
     </div>
   );
-});
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, memo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ const FILTER_OPTIONS = [
   { value: 'delivered', label: '🚚 Entregue' },
 ];
 
-export default memo(function AgendaPage() {
+export default function AgendaPage() {
   const { orders } = useOrders();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [statusFilter, setStatusFilter] = useState('all');
@@ -277,4 +277,4 @@ export default memo(function AgendaPage() {
       )}
     </div>
   );
-});
+}
