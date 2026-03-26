@@ -19,7 +19,7 @@ interface MaterialCost {
   materialId?: string;
 }
 
-export default memo(function PricingPage() {
+export default function PricingPage() {
   const { config, loading, save } = usePricingConfig();
   const { materials: inventoryMaterials } = useMaterials();
 
