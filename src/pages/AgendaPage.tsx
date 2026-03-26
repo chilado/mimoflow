@@ -32,7 +32,7 @@ const FILTER_OPTIONS = [
   { value: 'delivered', label: '🚚 Entregue' },
 ];
 
-export default memo(function AgendaPage() {
+export default function AgendaPage() {
   const { orders } = useOrders();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [statusFilter, setStatusFilter] = useState('all');
