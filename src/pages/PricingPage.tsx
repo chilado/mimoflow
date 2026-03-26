@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, PackagePlus, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
