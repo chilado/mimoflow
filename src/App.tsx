@@ -5,21 +5,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
-import { lazy, Suspense } from "react";
-
-// Lazy load pages for better performance
-const AuthPage = lazy(() => import("./pages/AuthPage"));
-const LandingPage = lazy(() => import("./pages/LandingPage"));
-const DashboardPage = lazy(() => import("./pages/DashboardPage"));
-const PricingPage = lazy(() => import("./pages/PricingPage"));
-const OrdersPage = lazy(() => import("./pages/OrdersPage"));
-const InventoryPage = lazy(() => import("./pages/InventoryPage"));
-const ClientsPage = lazy(() => import("./pages/ClientsPage"));
-const FinancePage = lazy(() => import("./pages/FinancePage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage"));
-const ProductsPage = lazy(() => import("./pages/ProductsPage"));
-const AgendaPage = lazy(() => import("./pages/AgendaPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+import AuthPage from "./pages/AuthPage";
+import LandingPage from "./pages/LandingPage";
+import DashboardPage from "./pages/DashboardPage";
+import PricingPage from "./pages/PricingPage";
+import OrdersPage from "./pages/OrdersPage";
+import InventoryPage from "./pages/InventoryPage";
+import ClientsPage from "./pages/ClientsPage";
+import FinancePage from "./pages/FinancePage";
+import SettingsPage from "./pages/SettingsPage";
+import ProductsPage from "./pages/ProductsPage";
+import AgendaPage from "./pages/AgendaPage";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -38,17 +35,17 @@ function ProtectedRoutes() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
-        <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
-        <Route path="/orders" element={<Suspense fallback={<PageLoader />}><OrdersPage /></Suspense>} />
-        <Route path="/inventory" element={<Suspense fallback={<PageLoader />}><InventoryPage /></Suspense>} />
-        <Route path="/clients" element={<Suspense fallback={<PageLoader />}><ClientsPage /></Suspense>} />
-        <Route path="/agenda" element={<Suspense fallback={<PageLoader />}><AgendaPage /></Suspense>} />
-        <Route path="/finance" element={<Suspense fallback={<PageLoader />}><FinancePage /></Suspense>} />
-        <Route path="/products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
-        <Route path="/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/clients" element={<ClientsPage />} />
+        <Route path="/agenda" element={<AgendaPage />} />
+        <Route path="/finance" element={<FinancePage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
-      <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
@@ -60,8 +57,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/landing" element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Suspense fallback={<PageLoader />}><AuthPage /></Suspense>} />
+      <Route path="/landing" element={<LandingPage />} />
+      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
       <Route path="/*" element={user ? <ProtectedRoutes /> : <Navigate to="/landing" replace />} />
     </Routes>
   );
