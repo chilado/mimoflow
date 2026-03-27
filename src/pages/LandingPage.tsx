@@ -94,7 +94,7 @@ const LandingPage = memo(function LandingPage() {
               Tudo que você precisa em um só app
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Funcionalidades pensadas para quem trabalha com papelaria personalizada
+              Funcionalidades pensadas para quem trabalha com criatividade
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
