@@ -43,9 +43,9 @@ const LandingPage = memo(function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">P</span>
+              <span className="text-sm font-bold text-primary-foreground">M</span>
             </div>
-            <span className="font-heading text-lg font-bold">PapelariaApp</span>
+            <span className="font-heading text-lg font-bold">MimoFlow</span>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
