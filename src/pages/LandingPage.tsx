@@ -43,9 +43,9 @@ const LandingPage = memo(function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">P</span>
+              <span className="text-sm font-bold text-primary-foreground">M</span>
             </div>
-            <span className="font-heading text-lg font-bold">PapelariaApp</span>
+            <span className="font-heading text-lg font-bold">MimoFlow</span>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
@@ -63,7 +63,7 @@ const LandingPage = memo(function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
         <div className="relative mx-auto max-w-4xl text-center">
           <Badge variant="secondary" className="mb-6 gap-1 px-3 py-1">
-            <Sparkles className="h-3 w-3" /> Feito para papelarias personalizadas
+            <Sparkles className="h-3 w-3" /> Sua gestão no fluxo certo
           </Badge>
           <h1 className="font-heading text-3xl font-bold leading-tight sm:text-5xl md:text-6xl">
             Gestão inteligente para seu{' '}
@@ -94,7 +94,7 @@ const LandingPage = memo(function LandingPage() {
               Tudo que você precisa em um só app
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Funcionalidades pensadas para quem trabalha com papelaria personalizada
+              Funcionalidades pensadas para quem trabalha com criatividade
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -179,12 +179,12 @@ const LandingPage = memo(function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-              <span className="text-xs font-bold text-primary-foreground">P</span>
+              <span className="text-xs font-bold text-primary-foreground">M</span>
             </div>
-            <span className="font-heading text-sm font-semibold">PapelariaApp</span>
+            <span className="font-heading text-sm font-semibold">MimoFlow</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} PapelariaApp. Gestão Inteligente para Papelaria Personalizada.
+            © {new Date().getFullYear()} MimoFlow. Sua gestão no fluxo certo.
           </p>
         </div>
       </footer>

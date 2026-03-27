@@ -11,7 +11,7 @@ function addHeader(doc: jsPDF, profile: Profile | null, title: string, subtitle:
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text(profile?.company_name || 'PapelariaApp', 14, 20);
+  doc.text(profile?.company_name || 'MimoFlow', 14, 20);
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');

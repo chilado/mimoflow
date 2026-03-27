@@ -77,7 +77,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Nome da Empresa</Label>
-              <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Minha Papelaria" maxLength={100} />
+              <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Minha Empresa" maxLength={100} />
             </div>
             <div>
               <Label className="text-xs">Telefone</Label>
@@ -133,7 +133,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            PapelariaApp — Gestão Inteligente para Empreendedores de Papelaria Personalizada.
+            MimoFlow — Sua gestão no fluxo certo.
             Seus dados são salvos com segurança na nuvem.
           </p>
         </CardContent>
