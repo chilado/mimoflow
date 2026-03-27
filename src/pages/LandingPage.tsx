@@ -63,7 +63,7 @@ const LandingPage = memo(function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
         <div className="relative mx-auto max-w-4xl text-center">
           <Badge variant="secondary" className="mb-6 gap-1 px-3 py-1">
-            <Sparkles className="h-3 w-3" /> Feito para papelarias personalizadas
+            <Sparkles className="h-3 w-3" /> Sua gestão no fluxo certo
           </Badge>
           <h1 className="font-heading text-3xl font-bold leading-tight sm:text-5xl md:text-6xl">
             Gestão inteligente para seu{' '}
