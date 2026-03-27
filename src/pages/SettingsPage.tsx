@@ -133,7 +133,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            PapelariaApp — Gestão Inteligente para Empreendedores de Papelaria Personalizada.
+            MimoFlow — Sua gestão no fluxo certo.
             Seus dados são salvos com segurança na nuvem.
           </p>
         </CardContent>

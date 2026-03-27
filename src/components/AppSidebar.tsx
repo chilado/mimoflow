@@ -35,12 +35,12 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">P</span>
+            <span className="text-sm font-bold text-primary-foreground">M</span>
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-heading text-sm font-bold text-sidebar-foreground">PapelariaApp</span>
-              <span className="text-[11px] text-muted-foreground">Gestão Inteligente</span>
+              <span className="font-heading text-sm font-bold text-sidebar-foreground">MimoFlow</span>
+              <span className="text-[11px] text-muted-foreground">Sua gestão no fluxo certo</span>
             </div>
           )}
         </div>

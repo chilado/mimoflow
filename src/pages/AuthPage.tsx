@@ -41,10 +41,10 @@ export default function AuthPage() {
       <div className="w-full max-w-sm animate-fade-up">
         <div className="text-center mb-8">
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mb-4">
-            <span className="text-2xl font-bold text-primary-foreground">P</span>
+            <span className="text-2xl font-bold text-primary-foreground">M</span>
           </div>
-          <h1 className="font-heading text-2xl font-bold">PapelariaApp</h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestão Inteligente para Papelaria</p>
+          <h1 className="font-heading text-2xl font-bold">MimoFlow</h1>
+          <p className="text-muted-foreground text-sm mt-1">Sua gestão no fluxo certo</p>
         </div>
 
         <Card>

@@ -1,7 +1,7 @@
 {
-  "name": "PapelariaApp - Gestão Inteligente",
-  "short_name": "PapelariaApp",
-  "description": "Gestão inteligente para empreendedores de papelaria personalizada",
+  "name": "MimoFlow - Sua gestão no fluxo certo",
+  "short_name": "MimoFlow",
+  "description": "MimoFlow — Sua gestão no fluxo certo. Gestão inteligente para seu negócio criativo.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f7fa",

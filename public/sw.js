@@ -1,4 +1,4 @@
-const CACHE_NAME = 'papelaria-v1';
+const CACHE_NAME = 'mimoflow-v1';
 const STATIC_ASSETS = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {

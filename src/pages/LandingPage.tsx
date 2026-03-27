@@ -179,12 +179,12 @@ const LandingPage = memo(function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-              <span className="text-xs font-bold text-primary-foreground">P</span>
+              <span className="text-xs font-bold text-primary-foreground">M</span>
             </div>
-            <span className="font-heading text-sm font-semibold">PapelariaApp</span>
+            <span className="font-heading text-sm font-semibold">MimoFlow</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} PapelariaApp. Gestão Inteligente para Papelaria Personalizada.
+            © {new Date().getFullYear()} MimoFlow. Sua gestão no fluxo certo.
           </p>
         </div>
       </footer>
