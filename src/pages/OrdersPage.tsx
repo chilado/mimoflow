@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, CheckCircle2, XCircle, FileText, Receipt } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Trash2, CheckCircle2, XCircle, FileText, Receipt, Search, PackagePlus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,17 +8,22 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useOrders, useClients, useProfile, type OrderItem, type Order } from '@/hooks/useStore';
+import { useOrders, useClients, useProfile, useProducts, type OrderItem, type Order } from '@/hooks/useStore';
 import { formatCurrency, generateId, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, type OrderStatus } from '@/lib/store';
 import { generateBudgetPDF, generateReceiptPDF } from '@/lib/pdfGenerator';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const statusOptions: OrderStatus[] = ['awaiting_payment', 'awaiting_art', 'art_approval', 'art_approved', 'in_production', 'finished', 'delivered'];
 const paymentMethods = ['PIX', 'Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'Transferência', 'Outro'];
 
 export default function OrdersPage() {
+  const { user } = useAuth();
   const { orders, add, update, remove } = useOrders();
   const { clients } = useClients();
   const { profile } = useProfile();
+  const { products, refresh: refreshProducts } = useProducts();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<string>('all');
   const [receiptDialog, setReceiptDialog] = useState<Order | null>(null);
@@ -30,12 +35,23 @@ export default function OrdersPage() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Product search state per item
+  const [itemSearches, setItemSearches] = useState<Record<string, string>>({});
+  const [activeSearchItem, setActiveSearchItem] = useState<string | null>(null);
+
+  // New product dialog
+  const [newProductDialog, setNewProductDialog] = useState<string | null>(null); // item id
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState(0);
+
   const filteredOrders = filter === 'all' ? orders : orders.filter(o => o.status === filter);
 
   const resetForm = () => {
     setForm({ client_name: '', event_theme: '', delivery_date: '', personalization: '', art_notes: '' });
     setItems([]);
     setEditingId(null);
+    setItemSearches({});
+    setActiveSearchItem(null);
   };
 
   const handleSave = () => {
@@ -78,7 +94,64 @@ export default function OrdersPage() {
     setOpen(true);
   };
 
-  const addItem = () => setItems(prev => [...prev, { id: generateId(), name: '', quantity: 1, unitPrice: 0 }]);
+  const addItemFromProduct = (productId: string, itemId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    setItems(prev => prev.map(x => x.id === itemId
+      ? { ...x, name: product.name, unitPrice: Number(product.base_price) }
+      : x
+    ));
+    setActiveSearchItem(null);
+    setItemSearches(prev => ({ ...prev, [itemId]: '' }));
+  };
+
+  const addBlankItem = () => {
+    const id = generateId();
+    setItems(prev => [...prev, { id, name: '', quantity: 1, unitPrice: 0 }]);
+    setActiveSearchItem(id);
+  };
+
+  const handleNewProductSave = async () => {
+    if (!user || !newProductName.trim()) return;
+    // Check for duplicate
+    const existing = products.find(p => p.name.toLowerCase().trim() === newProductName.toLowerCase().trim());
+    if (existing) {
+      // Use existing product
+      if (newProductDialog) {
+        setItems(prev => prev.map(x => x.id === newProductDialog
+          ? { ...x, name: existing.name, unitPrice: Number(existing.base_price) }
+          : x
+        ));
+      }
+      toast.info('Produto já existente, foi selecionado automaticamente.');
+    } else {
+      // Create new product
+      await supabase.from('products').insert({
+        name: newProductName.trim(),
+        base_price: newProductPrice,
+        user_id: user.id,
+        images: [] as any,
+      });
+      await refreshProducts();
+      if (newProductDialog) {
+        setItems(prev => prev.map(x => x.id === newProductDialog
+          ? { ...x, name: newProductName.trim(), unitPrice: newProductPrice }
+          : x
+        ));
+      }
+      toast.success('Produto cadastrado com sucesso!');
+    }
+    setNewProductDialog(null);
+    setNewProductName('');
+    setNewProductPrice(0);
+    setActiveSearchItem(null);
+  };
+
+  const getFilteredProducts = (itemId: string) => {
+    const search = (itemSearches[itemId] || '').toLowerCase().trim();
+    if (!search) return products;
+    return products.filter(p => p.name.toLowerCase().includes(search));
+  };
 
   const orderItems = (o: Order): OrderItem[] => (Array.isArray(o.items) ? o.items : []) as any;
 
@@ -126,27 +199,73 @@ export default function OrdersPage() {
                 <Label className="text-xs">Notas da Arte</Label>
                 <Textarea value={form.art_notes} onChange={e => setForm(f => ({ ...f, art_notes: e.target.value }))} rows={2} placeholder="Detalhes sobre a arte..." />
               </div>
+
+              {/* Order Items Section */}
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Itens do Pedido</Label>
-                <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3 w-3 mr-1" /> Item</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={addBlankItem}>
+                    <Search className="h-3 w-3 mr-1" /> Buscar Produto
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    const id = generateId();
+                    setItems(prev => [...prev, { id, name: '', quantity: 1, unitPrice: 0 }]);
+                    setNewProductDialog(id);
+                    setNewProductName('');
+                    setNewProductPrice(0);
+                  }}>
+                    <PackagePlus className="h-3 w-3 mr-1" /> Novo Produto
+                  </Button>
+                </div>
               </div>
+
               {items.map((item, idx) => (
-                <div key={item.id} className="grid grid-cols-[1fr_60px_80px_32px] gap-2 items-end">
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground">Item {idx + 1}</Label>
-                    <Input className="text-sm" value={item.name} onChange={e => setItems(prev => prev.map(x => x.id === item.id ? { ...x, name: e.target.value } : x))} placeholder="Caixa Milk" />
+                <div key={item.id} className="space-y-1">
+                  <div className="grid grid-cols-[1fr_60px_80px_32px] gap-2 items-end">
+                    <div className="relative">
+                      <Label className="text-[11px] text-muted-foreground">Item {idx + 1}</Label>
+                      <Input
+                        className="text-sm"
+                        value={activeSearchItem === item.id ? (itemSearches[item.id] ?? item.name) : item.name}
+                        onChange={e => {
+                          setItemSearches(prev => ({ ...prev, [item.id]: e.target.value }));
+                          setActiveSearchItem(item.id);
+                        }}
+                        onFocus={() => setActiveSearchItem(item.id)}
+                        placeholder="Buscar produto..."
+                      />
+                      {activeSearchItem === item.id && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {getFilteredProducts(item.id).length > 0 ? (
+                            getFilteredProducts(item.id).map(p => (
+                              <button
+                                key={p.id}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 transition-colors flex justify-between"
+                                onMouseDown={(e) => { e.preventDefault(); addItemFromProduct(p.id, item.id); }}
+                              >
+                                <span>{p.name}</span>
+                                <span className="text-muted-foreground">{formatCurrency(Number(p.base_price))}</span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum produto encontrado</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">Qtd</Label>
+                      <Input className="text-sm" type="number" value={item.quantity || ''} onChange={e => setItems(prev => prev.map(x => x.id === item.id ? { ...x, quantity: +e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">R$ Unit.</Label>
+                      <Input className="text-sm" type="number" value={item.unitPrice || ''} onChange={e => setItems(prev => prev.map(x => x.id === item.id ? { ...x, unitPrice: +e.target.value } : x))} />
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-9" onClick={() => setItems(prev => prev.filter(x => x.id !== item.id))}><Trash2 className="h-3 w-3" /></Button>
                   </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground">Qtd</Label>
-                    <Input className="text-sm" type="number" value={item.quantity || ''} onChange={e => setItems(prev => prev.map(x => x.id === item.id ? { ...x, quantity: +e.target.value } : x))} />
-                  </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground">R$ Unit.</Label>
-                    <Input className="text-sm" type="number" value={item.unitPrice || ''} onChange={e => setItems(prev => prev.map(x => x.id === item.id ? { ...x, unitPrice: +e.target.value } : x))} />
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-9" onClick={() => setItems(prev => prev.filter(x => x.id !== item.id))}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               ))}
+
               <div className="text-right text-sm font-medium">
                 Total: {formatCurrency(items.reduce((s, i) => s + i.quantity * i.unitPrice, 0))}
               </div>
@@ -157,6 +276,29 @@ export default function OrdersPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* New Product Dialog */}
+      <Dialog open={!!newProductDialog} onOpenChange={(v) => { if (!v) setNewProductDialog(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cadastrar Novo Produto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Este produto será salvo no catálogo para uso em futuros pedidos.</p>
+            <div>
+              <Label className="text-xs">Nome do Produto</Label>
+              <Input value={newProductName} onChange={e => setNewProductName(e.target.value)} placeholder="Ex: Caixa Milk Safari" maxLength={100} />
+            </div>
+            <div>
+              <Label className="text-xs">Preço Unitário (R$)</Label>
+              <Input type="number" value={newProductPrice || ''} onChange={e => setNewProductPrice(+e.target.value)} min={0} step={0.01} />
+            </div>
+            <Button className="w-full" onClick={handleNewProductSave} disabled={!newProductName.trim()}>
+              <PackagePlus className="h-4 w-4 mr-2" /> Salvar e Adicionar ao Pedido
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex gap-2 flex-wrap animate-fade-up stagger-1">
         <Badge variant={filter === 'all' ? 'default' : 'outline'} className="cursor-pointer" onClick={() => setFilter('all')}>Todos ({orders.length})</Badge>
