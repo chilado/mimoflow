@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { usePricingConfig, useMaterials, type FixedCost, type Material } from '@/hooks/useStore';
 import { formatCurrency, generateId } from '@/lib/store';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MaterialCost {
   id: string;
@@ -20,8 +22,9 @@ interface MaterialCost {
 }
 
 export default function PricingPage() {
+  const { user } = useAuth();
   const { config, loading, save } = usePricingConfig();
-  const { materials: inventoryMaterials } = useMaterials();
+  const { materials: inventoryMaterials, refresh: refreshMaterials } = useMaterials();
 
   const [productName, setProductName] = useState('');
   const [materials, setMaterials] = useState<MaterialCost[]>([]);
@@ -86,6 +89,40 @@ export default function PricingPage() {
   const removeMaterial = (id: string) => setMaterials(prev => prev.filter(m => m.id !== id));
   const updateMaterial = (id: string, field: keyof MaterialCost, value: string | number) => {
     setMaterials(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+  // Save manual material to inventory on blur (if not already from inventory)
+  const saveManualMaterialToInventory = async (mat: MaterialCost) => {
+    if (!user || mat.materialId || !mat.name.trim()) return;
+
+    // Check for duplicate by name (case-insensitive)
+    const existing = inventoryMaterials.find(
+      inv => inv.name.toLowerCase().trim() === mat.name.toLowerCase().trim()
+    );
+
+    if (existing) {
+      // Link to existing material
+      setMaterials(prev => prev.map(m => m.id === mat.id ? { ...m, materialId: existing.id } : m));
+      toast.info(`"${mat.name}" já existe no estoque, vinculado automaticamente.`);
+    } else {
+      // Create new material in inventory
+      const costPerUnit = mat.packageQty > 0 ? mat.packagePrice / mat.packageQty : 0;
+      const { data } = await supabase.from('materials').insert({
+        name: mat.name.trim(),
+        user_id: user.id,
+        cost_per_unit: costPerUnit,
+        quantity: 0,
+        unit: 'un',
+        category: 'Geral',
+        min_stock: 0,
+      }).select('id').single();
+
+      if (data) {
+        setMaterials(prev => prev.map(m => m.id === mat.id ? { ...m, materialId: data.id } : m));
+        await refreshMaterials();
+        toast.success(`"${mat.name}" salvo no estoque!`);
+      }
+    }
   };
 
   const addFixedCost = () => {
@@ -224,8 +261,18 @@ export default function PricingPage() {
           {materials.map(m => (
             <div key={m.id} className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 items-end">
               <div>
-                <Label className="text-[11px] text-muted-foreground">Material {m.materialId ? '(estoque)' : ''}</Label>
-                <Input className="text-sm" value={m.name} onChange={e => updateMaterial(m.id, 'name', e.target.value)} placeholder="Papel kraft" readOnly={!!m.materialId} maxLength={60} />
+                <Label className="text-[11px] text-muted-foreground">
+                  Material {m.materialId ? '(estoque)' : '(novo — será salvo no estoque)'}
+                </Label>
+                <Input
+                  className="text-sm"
+                  value={m.name}
+                  onChange={e => updateMaterial(m.id, 'name', e.target.value)}
+                  onBlur={() => saveManualMaterialToInventory(m)}
+                  placeholder="Papel kraft"
+                  readOnly={!!m.materialId}
+                  maxLength={60}
+                />
               </div>
               <div>
                 <Label className="text-[11px] text-muted-foreground">Qtd Pacote</Label>
