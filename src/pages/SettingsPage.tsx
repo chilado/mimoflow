@@ -7,7 +7,7 @@ import { useProfile, usePricingConfig } from '@/hooks/useStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/store';
 import { toast } from 'sonner';
-import { Save, Copy, Check, ExternalLink } from 'lucide-react';
+import { Save, Copy, Check, ExternalLink, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function SettingsPage() {
@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const [catalogSlug, setCatalogSlug] = useState('');
   const [slugSaving, setSlugSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   // Pricing config local state
   const [salary, setSalary] = useState('');
@@ -102,6 +103,19 @@ export default function SettingsPage() {
     setTimeout(() => setCopied(false), 3000);
   };
 
+  const handleLogoUpload = async (file: File) => {
+    if (!user || !profile) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error('Imagem muito grande (máx 2MB)'); return; }
+    setLogoUploading(true);
+    const path = `${user.id}/logo/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
+    if (error) { toast.error('Erro ao enviar logo'); setLogoUploading(false); return; }
+    const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
+    await saveProfile({ company_logo_url: publicUrl });
+    setLogoUploading(false);
+    toast.success('Logo atualizado!');
+  };
+
   const handleSaveConfig = useCallback(async () => {
     if (!config) return;
     await saveConfig({
@@ -131,6 +145,19 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground">Estas informações aparecem no PDF de orçamento.</p>
+          {/* Logo upload */}
+          <div className="flex items-center gap-4">
+            {profile?.company_logo_url ? (
+              <img src={profile.company_logo_url} alt="Logo" className="h-16 w-16 rounded-full object-cover border" />
+            ) : (
+              <div className="h-16 w-16 rounded-full bg-muted border flex items-center justify-center text-muted-foreground text-xs">Logo</div>
+            )}
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors text-xs text-muted-foreground">
+              <Upload className="h-4 w-4" />
+              {logoUploading ? 'Enviando...' : 'Enviar logo'}
+              <input type="file" accept="image/*" className="hidden" disabled={logoUploading} onChange={e => { if (e.target.files?.[0]) handleLogoUpload(e.target.files[0]); e.target.value = ''; }} />
+            </label>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Nome da Empresa</Label>
