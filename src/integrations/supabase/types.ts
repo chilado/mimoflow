@@ -259,6 +259,9 @@ export type Database = {
           company_logo_url: string | null
           company_name: string | null
           company_phone: string | null
+          whatsapp: string | null
+          instagram: string | null
+          address: string | null
           created_at: string
           id: string
           updated_at: string
@@ -269,6 +272,9 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null
+          whatsapp?: string | null
+          instagram?: string | null
+          address?: string | null
           created_at?: string
           id?: string
           updated_at?: string
@@ -279,6 +285,9 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null
+          whatsapp?: string | null
+          instagram?: string | null
+          address?: string | null
           created_at?: string
           id?: string
           updated_at?: string

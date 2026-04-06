@@ -306,6 +306,7 @@ export function useProfile() {
     if (!user || !profile) return;
     const { data } = await supabase.from('profiles').update({
       company_name: p.company_name, company_phone: p.company_phone, company_logo_url: p.company_logo_url,
+      whatsapp: p.whatsapp, instagram: p.instagram, address: p.address,
     }).eq('id', profile.id).select().single();
     if (data) setProfile(data);
   };

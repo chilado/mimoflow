@@ -17,6 +17,9 @@ export default function SettingsPage() {
 
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [address, setAddress] = useState('');
   const [catalogSlug, setCatalogSlug] = useState('');
   const [slugSaving, setSlugSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -33,6 +36,9 @@ export default function SettingsPage() {
   if (profile && !profileInit) {
     setCompanyName(profile.company_name || '');
     setCompanyPhone(profile.company_phone || '');
+    setWhatsapp(profile.whatsapp || '');
+    setInstagram(profile.instagram || '');
+    setAddress(profile.address || '');
     setCatalogSlug((profile as any).catalog_slug || '');
     setProfileInit(true);
   }
@@ -46,9 +52,15 @@ export default function SettingsPage() {
   }
 
   const handleSaveProfile = useCallback(async () => {
-    await saveProfile({ company_name: companyName.trim(), company_phone: companyPhone.trim() });
+    await saveProfile({
+      company_name: companyName.trim(),
+      company_phone: companyPhone.trim(),
+      whatsapp: whatsapp.trim(),
+      instagram: instagram.trim(),
+      address: address.trim(),
+    });
     toast.success('Perfil da empresa atualizado!');
-  }, [companyName, companyPhone, saveProfile]);
+  }, [companyName, companyPhone, whatsapp, instagram, address, saveProfile]);
 
   const handleSaveSlug = async () => {
     if (!profile) return;
@@ -127,6 +139,19 @@ export default function SettingsPage() {
             <div>
               <Label className="text-xs">Telefone</Label>
               <Input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} placeholder="(11) 99999-9999" maxLength={20} />
+            </div>
+            <div>
+              <Label className="text-xs">WhatsApp</Label>
+              <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="5511999999999" maxLength={20} />
+              <p className="text-[11px] text-muted-foreground mt-0.5">Somente números com DDI (ex: 5511999999999)</p>
+            </div>
+            <div>
+              <Label className="text-xs">Instagram</Label>
+              <Input value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@minhaempresa" maxLength={60} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs">Endereço</Label>
+              <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua Exemplo, 123 - Cidade/UF" maxLength={200} />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">Email: {user?.email}</p>
