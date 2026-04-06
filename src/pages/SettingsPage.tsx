@@ -110,11 +110,17 @@ export default function SettingsPage() {
     if (!user || !profile) return;
     if (file.size > 2 * 1024 * 1024) { toast.error('Imagem muito grande (máx 2MB)'); return; }
     setLogoUploading(true);
-    const path = `${user.id}/logo/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
-    if (error) { toast.error('Erro ao enviar logo'); setLogoUploading(false); return; }
+    const ext = file.name.split('.').pop() || 'png';
+    const path = `${user.id}/logo/logo.${ext}`;
+    const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true, contentType: file.type });
+    if (error) {
+      console.error('Logo upload error:', error);
+      toast.error(`Erro ao enviar logo: ${error.message}`);
+      setLogoUploading(false);
+      return;
+    }
     const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
-    await saveProfile({ company_logo_url: publicUrl });
+    await saveProfile({ company_logo_url: `${publicUrl}?t=${Date.now()}` });
     setLogoUploading(false);
     toast.success('Logo atualizado!');
   };
