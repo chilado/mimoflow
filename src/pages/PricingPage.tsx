@@ -11,6 +11,7 @@ import { formatCurrency, generateId } from '@/lib/store';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { MaterialFormDialog } from '@/components/MaterialFormDialog';
 
 interface MaterialCost {
   id: string;
@@ -35,6 +36,7 @@ export default function PricingPage() {
   const [cardFee, setCardFee] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showMaterialPicker, setShowMaterialPicker] = useState(false);
+  const [showMaterialForm, setShowMaterialForm] = useState(false);
 
   const [localFixedCosts, setLocalFixedCosts] = useState<FixedCost[] | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -72,7 +74,22 @@ export default function PricingPage() {
   const finalPrice = priceBeforeFees + feeAmount;
   const profit = finalPrice - baseCost - feeAmount;
 
-  const addManualMaterial = () => setMaterials(prev => [...prev, { id: generateId(), name: '', packageQty: 1, packagePrice: 0, usedQty: 1 }]);
+  const addManualMaterial = () => setShowMaterialForm(true);
+
+  const handleMaterialSaved = async (id: string, name: string, costPerUnit: number, unit: string) => {
+    // After saving, find the newly created material from inventory by name
+    await refreshMaterials();
+    // Add it to the pricing list — inventory will have the real id after refresh
+    setMaterials(prev => [...prev, {
+      id: generateId(),
+      name,
+      packageQty: 1,
+      packagePrice: costPerUnit,
+      usedQty: 1,
+      materialId: id || undefined,
+    }]);
+    toast.success(`"${name}" cadastrado no estoque e adicionado!`);
+  };
 
   const addFromInventory = (inv: Material) => {
     setMaterials(prev => [...prev, {
@@ -292,6 +309,13 @@ export default function PricingPage() {
           {materials.length === 0 && <p className="text-sm text-muted-foreground">Adicione materiais para calcular o custo.</p>}
         </CardContent>
       </Card>
+
+      {/* New Material Form Dialog */}
+      <MaterialFormDialog
+        open={showMaterialForm}
+        onOpenChange={setShowMaterialForm}
+        onSaved={handleMaterialSaved}
+      />
 
       {/* Material Picker Dialog */}
       <Dialog open={showMaterialPicker} onOpenChange={setShowMaterialPicker}>
