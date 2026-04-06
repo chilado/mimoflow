@@ -155,9 +155,9 @@ export default function OrdersPage() {
 
   const orderItems = (o: Order): OrderItem[] => (Array.isArray(o.items) ? o.items : []) as any;
 
-  const handleGenerateReceipt = () => {
+  const handleGenerateReceipt = async () => {
     if (!receiptDialog) return;
-    generateReceiptPDF(receiptDialog, orderItems(receiptDialog), profile, paymentMethod);
+    await generateReceiptPDF(receiptDialog, orderItems(receiptDialog), profile, paymentMethod);
     setReceiptDialog(null);
   };
 
@@ -357,7 +357,7 @@ export default function OrdersPage() {
                       {order.art_approved ? 'Revogar Arte' : 'Aprovar Arte'}
                     </Button>
                     <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => startEdit(order)}>Editar</Button>
-                    <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => generateBudgetPDF(order, oItems, profile)}>
+                    <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => generateBudgetPDF(order, oItems, profile as any)}>
                       <FileText className="h-3 w-3 mr-1" /> PDF
                     </Button>
                     <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setReceiptDialog(order); setPaymentMethod('PIX'); }}>
