@@ -12,7 +12,8 @@ interface Product {
   images: string[];
 }
 
-interface Profile {
+interface CatalogProfile {
+  user_id: string;
   company_name: string | null;
   company_phone: string | null;
   company_logo_url: string | null;
@@ -21,24 +22,31 @@ interface Profile {
 export default function CatalogPage() {
   const { slug } = useParams<{ slug: string }>();
   const [products, setProducts] = useState<Product[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<CatalogProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   useEffect(() => {
+    if (!slug) { setNotFound(true); setLoading(false); return; }
+
     async function load() {
-      // Find profile by catalog_slug
-      const { data: prof } = await (supabase
+      // Public read — requires RLS policy "Public catalog read" on profiles
+      const { data: prof, error: profError } = await (supabase
         .from('profiles' as any)
         .select('user_id, company_name, company_phone, company_logo_url')
         .eq('catalog_slug', slug)
-        .maybeSingle() as any);
+        .maybeSingle()) as { data: CatalogProfile | null; error: any };
 
-      if (!prof) { setNotFound(true); setLoading(false); return; }
+      if (profError || !prof) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
 
-      setProfile({ company_name: prof.company_name, company_phone: prof.company_phone, company_logo_url: prof.company_logo_url });
+      setProfile(prof);
 
+      // Public read — requires RLS policy "Public products read" on products
       const { data: prods } = await supabase
         .from('products')
         .select('id, name, description, base_price, images')
@@ -51,6 +59,7 @@ export default function CatalogPage() {
       })));
       setLoading(false);
     }
+
     load();
   }, [slug]);
 
@@ -94,7 +103,6 @@ export default function CatalogPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {products.map(product => (
               <div key={product.id} className="rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                {/* Product image */}
                 {product.images.length > 0 ? (
                   <div
                     className="aspect-square overflow-hidden cursor-pointer bg-muted"
@@ -135,7 +143,10 @@ export default function CatalogPage() {
 
       {/* Lightbox */}
       {lightbox && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center" onClick={() => setLightbox(null)}>
+        <div
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center"
+          onClick={() => setLightbox(null)}
+        >
           <button className="absolute top-4 right-4 text-foreground/70 hover:text-foreground" onClick={() => setLightbox(null)}>
             <X className="h-6 w-6" />
           </button>
@@ -159,7 +170,9 @@ export default function CatalogPage() {
             )}
           </div>
           {lightbox.images.length > 1 && (
-            <div className="absolute bottom-4 text-sm text-muted-foreground">{lightbox.index + 1} / {lightbox.images.length}</div>
+            <div className="absolute bottom-4 text-sm text-muted-foreground">
+              {lightbox.index + 1} / {lightbox.images.length}
+            </div>
           )}
         </div>
       )}

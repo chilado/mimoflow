@@ -32,28 +32,24 @@ export default function ProductsPage() {
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   const catalogSlug = (profile as any)?.catalog_slug as string | null;
-  const catalogUrl = catalogSlug ? `${window.location.origin}/catalogo/${catalogSlug}` : null;
+  const catalogUrl = catalogSlug ? `https://mimoflow.vercel.app/catalogo/${catalogSlug}` : null;
 
-  const generateSlug = () => {
-    const base = (profile?.company_name || 'catalogo')
-      .toLowerCase()
+  const generateSlug = (name: string) =>
+    name.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
-    return `${base}-${Math.random().toString(36).slice(2, 7)}`;
-  };
 
   const handleGenerateCatalog = async () => {
     if (!user || !profile) return;
-    const slug = catalogSlug || generateSlug();
+    const name = profile.company_name || 'catalogo';
+    const slug = generateSlug(name);
     await (supabase.from('profiles' as any).update({ catalog_slug: slug } as any).eq('id', (profile as any).id) as any);
-    const url = `${window.location.origin}/catalogo/${slug}`;
+    const url = `https://mimoflow.vercel.app/catalogo/${slug}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     toast.success('Link do catálogo copiado!');
-    setTimeout(() => setCopied(false), 3000);
-    // Force page reload to reflect new slug
-    window.location.reload();
+    setTimeout(() => { setCopied(false); }, 3000);
   };
 
   const handleCopyLink = async () => {
