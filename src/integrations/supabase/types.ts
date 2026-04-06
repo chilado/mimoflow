@@ -255,6 +255,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          catalog_slug: string | null
           company_logo_url: string | null
           company_name: string | null
           company_phone: string | null
@@ -264,6 +265,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          catalog_slug?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null
@@ -273,6 +275,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          catalog_slug?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, Image, List, X, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Plus, Trash2, Edit2, Image, List, X, ChevronLeft, ChevronRight, Upload, Link2, Copy, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useProducts, useMaterials, useProductMaterials, type Product } from '@/hooks/useStore';
+import { useProducts, useMaterials, useProductMaterials, useProfile, type Product } from '@/hooks/useStore';
 import { formatCurrency } from '@/lib/store';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 export default function ProductsPage() {
   const { products, add, update, remove } = useProducts();
   const { materials } = useMaterials();
+  const { profile } = useProfile();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -25,9 +26,43 @@ export default function ProductsPage() {
   const { materials: prodMaterials, add: addProdMat, remove: removeProdMat } = useProductMaterials(selectedProduct);
   const [addMatId, setAddMatId] = useState('');
   const [addMatQty, setAddMatQty] = useState(1);
+  const [copied, setCopied] = useState(false);
 
   // Lightbox state
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
+
+  const catalogSlug = (profile as any)?.catalog_slug as string | null;
+  const catalogUrl = catalogSlug ? `${window.location.origin}/catalogo/${catalogSlug}` : null;
+
+  const generateSlug = () => {
+    const base = (profile?.company_name || 'catalogo')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    return `${base}-${Math.random().toString(36).slice(2, 7)}`;
+  };
+
+  const handleGenerateCatalog = async () => {
+    if (!user || !profile) return;
+    const slug = catalogSlug || generateSlug();
+    await (supabase.from('profiles' as any).update({ catalog_slug: slug } as any).eq('id', (profile as any).id) as any);
+    const url = `${window.location.origin}/catalogo/${slug}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success('Link do catálogo copiado!');
+    setTimeout(() => setCopied(false), 3000);
+    // Force page reload to reflect new slug
+    window.location.reload();
+  };
+
+  const handleCopyLink = async () => {
+    if (!catalogUrl) return;
+    await navigator.clipboard.writeText(catalogUrl);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 3000);
+  };
 
   const resetForm = () => { setForm({ name: '', description: '', base_price: 0 }); setEditingId(null); };
 
@@ -99,31 +134,43 @@ export default function ProductsPage() {
           <h1 className="font-heading text-2xl font-bold">Produtos & Kits</h1>
           <p className="text-muted-foreground text-sm mt-1">Galeria, ficha técnica e composição</p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-1" /> Novo Produto</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingId ? 'Editar Produto' : 'Novo Produto'}</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label className="text-xs">Nome</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Kit Festa Safari" maxLength={100} />
+        <div className="flex gap-2">
+          {catalogUrl ? (
+            <Button variant="outline" size="sm" onClick={handleCopyLink}>
+              {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+              Copiar link do catálogo
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleGenerateCatalog}>
+              <Link2 className="h-4 w-4 mr-1" /> Gerar catálogo público
+            </Button>
+          )}
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-1" /> Novo Produto</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>{editingId ? 'Editar Produto' : 'Novo Produto'}</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs">Nome</Label>
+                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Kit Festa Safari" maxLength={100} />
+                </div>
+                <div>
+                  <Label className="text-xs">Descrição</Label>
+                  <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Inclui caixas, bandejas..." maxLength={500} />
+                </div>
+                <div>
+                  <Label className="text-xs">Preço Base (R$)</Label>
+                  <Input type="number" value={form.base_price || ''} onChange={e => setForm(f => ({ ...f, base_price: +e.target.value }))} min={0} />
+                </div>
+                <Button className="w-full" onClick={handleSave} disabled={!form.name}>
+                  {editingId ? 'Salvar' : 'Cadastrar'}
+                </Button>
               </div>
-              <div>
-                <Label className="text-xs">Descrição</Label>
-                <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Inclui caixas, bandejas..." maxLength={500} />
-              </div>
-              <div>
-                <Label className="text-xs">Preço Base (R$)</Label>
-                <Input type="number" value={form.base_price || ''} onChange={e => setForm(f => ({ ...f, base_price: +e.target.value }))} min={0} />
-              </div>
-              <Button className="w-full" onClick={handleSave} disabled={!form.name}>
-                {editingId ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-4 animate-fade-up stagger-1">

@@ -17,6 +17,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ProductsPage from "./pages/ProductsPage";
 import AgendaPage from "./pages/AgendaPage";
 import NotFound from "./pages/NotFound";
+import CatalogPage from "./pages/CatalogPage";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+      <Route path="/catalogo/:slug" element={<CatalogPage />} />
       <Route path="/*" element={user ? <ProtectedRoutes /> : <Navigate to="/landing" replace />} />
     </Routes>
   );
