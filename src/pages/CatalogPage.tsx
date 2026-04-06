@@ -157,7 +157,17 @@ export default function CatalogPage() {
                     {product.description && (
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
                     )}
-                    <p className="text-primary font-bold text-base mt-1">{formatCurrency(Number(product.base_price))}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-primary font-bold text-base">{formatCurrency(Number(product.base_price))}</p>
+                      {product.images.length > 0 && (
+                        <button
+                          onClick={() => setLightbox({ images: product.images, index: 0 })}
+                          className="text-xs px-2 py-1 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          +Fotos ({product.images.length})
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -176,18 +186,22 @@ export default function CatalogPage() {
                   ) : (
                     <div className="aspect-square bg-muted flex items-center justify-center text-muted-foreground text-sm">Sem foto</div>
                   )}
-                  <div className="p-4 space-y-1">
+                  <div className="p-4">
                     <h2 className="font-semibold text-base">{product.name}</h2>
                     {product.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
                     )}
-                    <p className="text-primary font-bold text-lg pt-1">{formatCurrency(Number(product.base_price))}</p>
-                    {product.images.length > 1 && (
-                      <button className="text-xs text-muted-foreground underline"
-                        onClick={() => setLightbox({ images: product.images, index: 0 })}>
-                        Ver {product.images.length} fotos
-                      </button>
-                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-primary font-bold text-lg">{formatCurrency(Number(product.base_price))}</p>
+                      {product.images.length > 0 && (
+                        <button
+                          onClick={() => setLightbox({ images: product.images, index: 0 })}
+                          className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-medium"
+                        >
+                          +Fotos ({product.images.length})
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
