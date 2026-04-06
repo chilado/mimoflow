@@ -302,12 +302,13 @@ export function useProfile() {
       .then(({ data }) => { setProfile(data); setLoading(false); });
   }, [user]);
 
-  const save = async (p: Partial<Profile>) => {
+  const save = async (p: Partial<Profile> & { company_description?: string; catalog_slug?: string }) => {
     if (!user || !profile) return;
     const { data } = await supabase.from('profiles').update({
       company_name: p.company_name, company_phone: p.company_phone, company_logo_url: p.company_logo_url,
       whatsapp: p.whatsapp, instagram: p.instagram, address: p.address,
-    }).eq('id', profile.id).select().single();
+      ...(p.company_description !== undefined && { company_description: p.company_description }),
+    } as any).eq('id', profile.id).select().single();
     if (data) setProfile(data);
   };
 

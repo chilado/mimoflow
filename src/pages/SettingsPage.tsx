@@ -17,6 +17,7 @@ export default function SettingsPage() {
 
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
+  const [companyDescription, setCompanyDescription] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [instagram, setInstagram] = useState('');
   const [address, setAddress] = useState('');
@@ -37,6 +38,7 @@ export default function SettingsPage() {
   if (profile && !profileInit) {
     setCompanyName(profile.company_name || '');
     setCompanyPhone(profile.company_phone || '');
+    setCompanyDescription((profile as any).company_description || '');
     setWhatsapp(profile.whatsapp || '');
     setInstagram(profile.instagram || '');
     setAddress(profile.address || '');
@@ -59,9 +61,10 @@ export default function SettingsPage() {
       whatsapp: whatsapp.trim(),
       instagram: instagram.trim(),
       address: address.trim(),
-    });
+      company_description: companyDescription.trim(),
+    } as any);
     toast.success('Perfil da empresa atualizado!');
-  }, [companyName, companyPhone, whatsapp, instagram, address, saveProfile]);
+  }, [companyName, companyPhone, whatsapp, instagram, address, companyDescription, saveProfile]);
 
   const handleSaveSlug = async () => {
     if (!profile) return;
@@ -179,6 +182,18 @@ export default function SettingsPage() {
             <div className="sm:col-span-2">
               <Label className="text-xs">Endereço</Label>
               <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua Exemplo, 123 - Cidade/UF" maxLength={200} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs">Descrição da Empresa</Label>
+              <textarea
+                value={companyDescription}
+                onChange={e => setCompanyDescription(e.target.value)}
+                placeholder="Conte um pouco sobre sua empresa, especialidades, diferenciais..."
+                maxLength={300}
+                rows={3}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+              />
+              <p className="text-[11px] text-muted-foreground mt-0.5">{companyDescription.length}/300</p>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">Email: {user?.email}</p>
