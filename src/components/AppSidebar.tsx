@@ -25,10 +25,12 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const { signOut, user } = useAuth();
+
+  const handleNavClick = () => setOpenMobile(false);
 
   return (
     <Sidebar collapsible="icon">
@@ -54,7 +56,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active}>
-                      <NavLink to={item.url} end className="hover:bg-sidebar-accent/60" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                      <NavLink to={item.url} end className="hover:bg-sidebar-accent/60" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium" onClick={handleNavClick}>
                         <item.icon className="mr-2 h-4 w-4" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
