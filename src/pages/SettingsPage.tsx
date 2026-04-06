@@ -7,7 +7,8 @@ import { useProfile, usePricingConfig } from '@/hooks/useStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/store';
 import { toast } from 'sonner';
-import { Save } from 'lucide-react';
+import { Save, Copy, Check, ExternalLink } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function SettingsPage() {
   const { config, loading: configLoading, save: saveConfig } = usePricingConfig();
@@ -16,6 +17,9 @@ export default function SettingsPage() {
 
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
+  const [catalogSlug, setCatalogSlug] = useState('');
+  const [slugSaving, setSlugSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Pricing config local state
   const [salary, setSalary] = useState('');
@@ -29,6 +33,7 @@ export default function SettingsPage() {
   if (profile && !profileInit) {
     setCompanyName(profile.company_name || '');
     setCompanyPhone(profile.company_phone || '');
+    setCatalogSlug((profile as any).catalog_slug || '');
     setProfileInit(true);
   }
 
@@ -44,6 +49,46 @@ export default function SettingsPage() {
     await saveProfile({ company_name: companyName.trim(), company_phone: companyPhone.trim() });
     toast.success('Perfil da empresa atualizado!');
   }, [companyName, companyPhone, saveProfile]);
+
+  const handleSaveSlug = async () => {
+    if (!profile) return;
+    const slug = catalogSlug.trim()
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (!slug) { toast.error('Digite um link válido'); return; }
+
+    setSlugSaving(true);
+    // Check uniqueness
+    const { data: existing } = await (supabase
+      .from('profiles' as any)
+      .select('id')
+      .eq('catalog_slug' as any, slug)
+      .neq('id', (profile as any).id)
+      .maybeSingle() as any);
+
+    if (existing) {
+      toast.error('Esse link já está em uso, escolha outro.');
+      setSlugSaving(false);
+      return;
+    }
+
+    await (supabase.from('profiles' as any).update({ catalog_slug: slug } as any).eq('id', (profile as any).id) as any);
+    setCatalogSlug(slug);
+    setSlugSaving(false);
+    toast.success('Link do catálogo atualizado!');
+  };
+
+  const handleCopyLink = async () => {
+    const url = `https://mimoflow.vercel.app/catalogo/${catalogSlug}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 3000);
+  };
 
   const handleSaveConfig = useCallback(async () => {
     if (!config) return;
@@ -128,6 +173,53 @@ export default function SettingsPage() {
       )}
 
       <Card className="animate-fade-up stagger-3">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Catálogo Público</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Defina o link do seu catálogo virtual. Deve ser único e usar apenas letras, números e hífens.
+          </p>
+          <div>
+            <Label className="text-xs">Link do Catálogo</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">mimoflow.vercel.app/catalogo/</span>
+              <Input
+                value={catalogSlug}
+                onChange={e => setCatalogSlug(e.target.value)}
+                placeholder="nome-da-empresa"
+                maxLength={60}
+                className="flex-1"
+              />
+            </div>
+          </div>
+          {catalogSlug && (
+            <p className="text-xs text-muted-foreground">
+              Prévia: <span className="text-primary">https://mimoflow.vercel.app/catalogo/{catalogSlug}</span>
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleSaveSlug} disabled={slugSaving}>
+              <Save className="h-3.5 w-3.5 mr-1.5" /> {slugSaving ? 'Salvando...' : 'Salvar Link'}
+            </Button>
+            {catalogSlug && (
+              <>
+                <Button size="sm" variant="outline" onClick={handleCopyLink}>
+                  {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
+                  Copiar Link
+                </Button>
+                <Button size="sm" variant="ghost" asChild>
+                  <a href={`https://mimoflow.vercel.app/catalogo/${catalogSlug}`} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Abrir
+                  </a>
+                </Button>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="animate-fade-up stagger-4">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Sobre o App</CardTitle>
         </CardHeader>
