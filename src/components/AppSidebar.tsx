@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Calculator, ClipboardList, Package, Users,
-  DollarSign, Settings, LogOut, ShoppingBag, CalendarDays,
+  DollarSign, Settings, LogOut, ShoppingBag, CalendarDays, Crown,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -21,6 +21,7 @@ const navItems = [
   { title: 'Clientes', url: '/clients', icon: Users },
   { title: 'Agenda', url: '/agenda', icon: CalendarDays },
   { title: 'Financeiro', url: '/finance', icon: DollarSign },
+  { title: 'Meu Plano', url: '/plan', icon: Crown },
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 

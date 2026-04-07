@@ -18,6 +18,7 @@ import ProductsPage from "./pages/ProductsPage";
 import AgendaPage from "./pages/AgendaPage";
 import NotFound from "./pages/NotFound";
 import CatalogPage from "./pages/CatalogPage";
+import PlanPage from "./pages/PlanPage";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ function ProtectedRoutes() {
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/plan" element={<PlanPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

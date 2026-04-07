@@ -295,6 +295,39 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan: 'trial' | 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+          status: 'active' | 'cancelled' | 'expired'
+          started_at: string
+          expires_at: string | null
+          cancelled_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan?: 'trial' | 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+          status?: 'active' | 'cancelled' | 'expired'
+          started_at?: string
+          expires_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan?: 'trial' | 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+          status?: 'active' | 'cancelled' | 'expired'
+          started_at?: string
+          expires_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
