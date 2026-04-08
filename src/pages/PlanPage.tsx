@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { CheckCircle2, Crown, RefreshCw, XCircle, Clock, Loader2, AlertTriangle, MessageSquare, Send } from 'lucide-react';
+import { CheckCircle2, Crown, RefreshCw, XCircle, Clock, Loader2, AlertTriangle, MessageSquare, Send, Upload, DollarSign } from 'lucide-react';
 
 type PlanKey = 'trial' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 type StatusKey = 'active' | 'cancelled' | 'expired';
@@ -75,11 +75,9 @@ function fmt(dateStr: string) {
 
 export default function PlanPage() {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
   const [sub, setSub] = useState<Subscription | null>(null);
   const [history, setHistory] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [acting, setActing] = useState(false);
   
   // Support ticket form
   const [ticketType, setTicketType] = useState('subscription');
@@ -102,29 +100,92 @@ export default function PlanPage() {
 
   useEffect(() => { load(); }, [user]);
 
-  useEffect(() => {
-    if (searchParams.get('success')) {
-      toast.success('Pagamento confirmado! Seu plano será ativado em instantes.');
-      setTimeout(() => load(), 3000);
-    }
-    if (searchParams.get('cancelled')) {
-      toast.info('Pagamento cancelado.');
-    }
-  }, []);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanKey, 'trial'> | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   const handleUpgrade = async (plan: Exclude<PlanKey, 'trial'>) => {
-    if (!user) return;
-    setActing(true);
+    setSelectedPlan(plan);
+    setPaymentDialogOpen(true);
+  };
+
+  const handleProofUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedPlan || !proofFile) return;
+
+    setUploadingProof(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan },
-      });
-      if (error || !data?.url) throw new Error(error?.message || 'Erro ao criar sessão de pagamento');
-      window.location.href = data.url;
-    } catch (e: any) {
-      toast.error(e.message);
-      setActing(false);
+      // Buscar nome da empresa
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('company_name')
+        .eq('user_id', user.id)
+        .single();
+
+      // Upload do comprovante para o storage
+      const fileExt = proofFile.name.split('.').pop();
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(fileName, proofFile);
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública do arquivo
+      const { data: urlData } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(fileName);
+
+      // Calcular valor do plano
+      const planAmounts = {
+        monthly: 29.90,
+        quarterly: 85.00,
+        semiannual: 150.00,
+        annual: 240.00,
+      };
+
+      // Inserir registro de comprovante
+      const { error: insertError } = await supabase
+        .from('payment_proofs')
+        .insert({
+          user_id: user.id,
+          company_name: profileData?.company_name || null,
+          plan: selectedPlan,
+          amount: planAmounts[selectedPlan],
+          proof_url: urlData.publicUrl,
+          status: 'pending',
+        });
+
+      if (insertError) throw insertError;
+
+      toast.success('Comprovante enviado com sucesso! Aguarde a aprovação do pagamento.');
+      setPaymentDialogOpen(false);
+      setProofFile(null);
+      setSelectedPlan(null);
+    } catch (error: any) {
+      console.error('Erro ao enviar comprovante:', error);
+      toast.error('Erro ao enviar comprovante. Tente novamente.');
+    } finally {
+      setUploadingProof(false);
     }
+  };
+
+  const getPlanAmount = (plan: Exclude<PlanKey, 'trial'>) => {
+    const amounts = {
+      monthly: 'R$ 29,90',
+      quarterly: 'R$ 85,00',
+      semiannual: 'R$ 150,00',
+      annual: 'R$ 240,00',
+    };
+    return amounts[plan];
+  };
+
+  const sendWhatsAppMessage = () => {
+    if (!selectedPlan) return;
+    const message = `Olá! Acabei de enviar o comprovante de pagamento do plano ${PLAN_LABELS[selectedPlan]} no valor de ${getPlanAmount(selectedPlan)}. Aguardo a confirmação.`;
+    const whatsappUrl = `https://wa.me/5598974002272?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const handleRenew = () => {
@@ -134,13 +195,11 @@ export default function PlanPage() {
 
   const handleCancel = async () => {
     if (!sub) return;
-    setActing(true);
     await (supabase.from('subscriptions' as any).update({
       status: 'cancelled', cancelled_at: new Date().toISOString(),
     } as any).eq('id', sub.id) as any);
     toast.success('Plano cancelado.');
     await load();
-    setActing(false);
   };
 
   const handleSubmitTicket = async (e: React.FormEvent) => {
@@ -282,10 +341,10 @@ export default function PlanPage() {
           )}
           {isActive && !isTrial && (
             <div className="flex gap-2 pt-2">
-              <Button size="sm" variant="outline" onClick={handleRenew} disabled={acting}>
+              <Button size="sm" variant="outline" onClick={handleRenew}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Renovar
               </Button>
-              <Button size="sm" variant="ghost" className="text-destructive" onClick={handleCancel} disabled={acting}>
+              <Button size="sm" variant="ghost" className="text-destructive" onClick={handleCancel}>
                 <XCircle className="h-3.5 w-3.5 mr-1.5" /> Cancelar plano
               </Button>
             </div>
@@ -319,11 +378,10 @@ export default function PlanPage() {
                   <Button
                     size="sm"
                     variant={isCurrent ? 'outline' : p.highlight ? 'default' : 'outline'}
-                    disabled={isCurrent || acting}
+                    disabled={isCurrent}
                     onClick={() => handleUpgrade(p.key)}
                     className="mt-1"
                   >
-                    {acting && !isCurrent ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
                     {isCurrent ? 'Plano ativo' : 'Selecionar'}
                   </Button>
                 </div>
@@ -335,6 +393,107 @@ export default function PlanPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Pagamento via PIX
+            </DialogTitle>
+            <DialogDescription>
+              {selectedPlan && `Plano ${PLAN_LABELS[selectedPlan]} - ${getPlanAmount(selectedPlan)}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Informações PIX */}
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+              <h3 className="font-semibold text-sm">Dados para Transferência PIX</h3>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Nome:</span>
+                  <span className="font-medium">Jarbson Braga Santos</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Chave PIX:</span>
+                  <span className="font-medium">98974002272</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tipo:</span>
+                  <span className="font-medium">Celular</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Banco:</span>
+                  <span className="font-medium">Santander</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t">
+                  <span className="text-muted-foreground">Valor:</span>
+                  <span className="font-bold text-primary text-lg">
+                    {selectedPlan && getPlanAmount(selectedPlan)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Upload do comprovante */}
+            <form onSubmit={handleProofUpload} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="proof-file">Comprovante de Pagamento</Label>
+                <Input
+                  id="proof-file"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                  required
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Envie uma foto ou PDF do comprovante de pagamento
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={uploadingProof || !proofFile}
+                >
+                  {uploadingProof ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Enviar Comprovante
+                    </>
+                  )}
+                </Button>
+
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={sendWhatsAppMessage}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Enviar via WhatsApp
+                </Button>
+              </div>
+            </form>
+
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                Após o envio do comprovante, nossa equipe analisará e liberará seu acesso em até 24 horas úteis.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* History */}
       {history.length > 1 && (

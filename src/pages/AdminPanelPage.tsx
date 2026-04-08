@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminTicketsTab } from '@/components/AdminTicketsTab';
+import { AdminPaymentsTab } from '@/components/AdminPaymentsTab';
 import { toast } from '@/hooks/use-toast';
-import { Lock, Unlock, Search, LogOut, Users, CreditCard, Shield, Eye, EyeOff, MessageSquare, AlertCircle } from 'lucide-react';
+import { Lock, Unlock, Search, LogOut, Users, CreditCard, Shield, Eye, EyeOff, MessageSquare, AlertCircle, DollarSign } from 'lucide-react';
 
 interface User {
   id: string;
@@ -456,10 +457,14 @@ export default function AdminPanelPage() {
       {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Usuários
+            </TabsTrigger>
+            <TabsTrigger value="payments">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Pagamentos
             </TabsTrigger>
             <TabsTrigger value="tickets">
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -629,6 +634,10 @@ export default function AdminPanelPage() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="payments">
+            <AdminPaymentsTab />
           </TabsContent>
 
           <TabsContent value="tickets">

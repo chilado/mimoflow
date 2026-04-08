@@ -385,6 +385,51 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_proofs: {
+        Row: {
+          id: string
+          user_id: string
+          company_name: string | null
+          plan: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+          amount: number
+          proof_url: string
+          status: 'pending' | 'approved' | 'rejected'
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          company_name?: string | null
+          plan: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+          amount: number
+          proof_url: string
+          status?: 'pending' | 'approved' | 'rejected'
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          company_name?: string | null
+          plan?: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+          amount?: number
+          proof_url?: string
+          status?: 'pending' | 'approved' | 'rejected'
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
