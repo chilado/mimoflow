@@ -262,6 +262,10 @@ export type Database = {
           whatsapp: string | null
           instagram: string | null
           address: string | null
+          subscription_status: string | null
+          subscription_plan: string | null
+          subscription_end_date: string | null
+          is_blocked: boolean
           created_at: string
           id: string
           updated_at: string
@@ -275,6 +279,10 @@ export type Database = {
           whatsapp?: string | null
           instagram?: string | null
           address?: string | null
+          subscription_status?: string | null
+          subscription_plan?: string | null
+          subscription_end_date?: string | null
+          is_blocked?: boolean
           created_at?: string
           id?: string
           updated_at?: string
@@ -288,6 +296,10 @@ export type Database = {
           whatsapp?: string | null
           instagram?: string | null
           address?: string | null
+          subscription_status?: string | null
+          subscription_plan?: string | null
+          subscription_end_date?: string | null
+          is_blocked?: boolean
           created_at?: string
           id?: string
           updated_at?: string

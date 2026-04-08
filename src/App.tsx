@@ -24,6 +24,7 @@ const AgendaPage = lazy(() => import("./pages/AgendaPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const CatalogPage = lazy(() => import("./pages/CatalogPage"));
 const PlanPage = lazy(() => import("./pages/PlanPage"));
+const AdminPanelPage = lazy(() => import("./pages/AdminPanelPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,34 +44,6 @@ const PageLoader = memo(() => (
 ));
 PageLoader.displayName = 'PageLoader';
 
-const ProtectedRoutes = memo(() => {
-  const { user, loading } = useAuth();
-
-  if (loading) return <PageLoader />;
-  if (!user) return <Navigate to="/auth" replace />;
-
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/agenda" element={<AgendaPage />} />
-          <Route path="/finance" element={<FinancePage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/plan" element={<PlanPage />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
-  );
-});
-ProtectedRoutes.displayName = 'ProtectedRoutes';
-
 const AppRoutes = memo(() => {
   const { user, loading } = useAuth();
 
@@ -79,10 +52,34 @@ const AppRoutes = memo(() => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* Rotas públicas específicas */}
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-        <Route path="/*" element={user ? <ProtectedRoutes /> : <Navigate to="/landing" replace />} />
+        <Route path="/mimo-painel-admin" element={<AdminPanelPage />} />
+        
+        {/* Rotas protegidas */}
+        {user ? (
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/agenda" element={<AgendaPage />} />
+            <Route path="/finance" element={<FinancePage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/plan" element={<PlanPage />} />
+          </Route>
+        ) : (
+          <Route path="/" element={<Navigate to="/landing" replace />} />
+        )}
+        
+        {/* Rota do catálogo - deve ser a última para não capturar outras rotas */}
         <Route path="/:slug" element={<CatalogPage />} />
+        
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
