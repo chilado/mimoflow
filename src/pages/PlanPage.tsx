@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { CheckCircle2, Crown, RefreshCw, XCircle, Clock, Loader2, AlertTriangle, MessageSquare, Send, Upload, DollarSign } from 'lucide-react';
+import { CheckCircle2, Crown, RefreshCw, XCircle, Clock, Loader2, AlertTriangle, MessageSquare, Send, Upload, DollarSign, Copy } from 'lucide-react';
 
 type PlanKey = 'trial' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 type StatusKey = 'active' | 'cancelled' | 'expired';
@@ -186,6 +186,11 @@ export default function PlanPage() {
     const message = `Olá! Acabei de enviar o comprovante de pagamento do plano ${PLAN_LABELS[selectedPlan]} no valor de ${getPlanAmount(selectedPlan)}. Aguardo a confirmação.`;
     const whatsappUrl = `https://wa.me/5598974002272?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const copyPixKey = () => {
+    navigator.clipboard.writeText('98974002272');
+    toast.success('Chave PIX copiada!');
   };
 
   const handleRenew = () => {
@@ -416,9 +421,20 @@ export default function PlanPage() {
                   <span className="text-muted-foreground">Nome:</span>
                   <span className="font-medium">Jarbson Braga Santos</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Chave PIX:</span>
-                  <span className="font-medium">98974002272</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">98974002272</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2"
+                      onClick={copyPixKey}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tipo:</span>
