@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,13 +22,24 @@ interface User {
   is_blocked: boolean;
 }
 
+interface Subscription {
+  id: string;
+  user_id: string;
+  plan: 'trial' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+  status: 'active' | 'cancelled' | 'expired';
+  started_at: string;
+  expires_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+}
+
 export default function AdminPanelPage() {
-  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Record<string, Subscription>>({});
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -105,28 +115,54 @@ export default function AdminPanelPage() {
     try {
       console.log('Carregando usuários...');
       
-      const { data, error } = await supabase
+      // Carregar perfis
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erro ao carregar:', error);
-        throw error;
+      if (profilesError) {
+        console.error('Erro ao carregar perfis:', profilesError);
+        throw profilesError;
       }
 
-      console.log('Usuários carregados:', data?.length);
+      // Carregar assinaturas
+      const { data: subsData, error: subsError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const usersData = data.map((profile: any) => ({
-        id: profile.id,
-        email: profile.user_id || profile.id,
-        created_at: profile.created_at,
-        company_name: profile.company_name,
-        subscription_status: profile.subscription_status || 'inactive',
-        subscription_plan: profile.subscription_plan || null,
-        subscription_end_date: profile.subscription_end_date || null,
-        is_blocked: profile.is_blocked || false,
-      }));
+      if (subsError) {
+        console.error('Erro ao carregar assinaturas:', subsError);
+      }
+
+      console.log('Perfis carregados:', profilesData?.length);
+      console.log('Assinaturas carregadas:', subsData?.length);
+
+      // Criar mapa de assinaturas por user_id (pegar a mais recente)
+      const subsMap: Record<string, Subscription> = {};
+      if (subsData) {
+        subsData.forEach((sub: any) => {
+          if (!subsMap[sub.user_id]) {
+            subsMap[sub.user_id] = sub as Subscription;
+          }
+        });
+      }
+      setSubscriptions(subsMap);
+
+      const usersData = profilesData.map((profile: any) => {
+        const sub = subsMap[profile.user_id];
+        return {
+          id: profile.id,
+          email: profile.user_id || profile.id,
+          created_at: profile.created_at,
+          company_name: profile.company_name,
+          subscription_status: sub?.status || profile.subscription_status || 'inactive',
+          subscription_plan: sub?.plan || profile.subscription_plan || null,
+          subscription_end_date: sub?.expires_at || profile.subscription_end_date || null,
+          is_blocked: profile.is_blocked || false,
+        };
+      });
 
       setUsers(usersData);
     } catch (error: any) {
@@ -178,22 +214,72 @@ export default function AdminPanelPage() {
     try {
       console.log('Atualizando assinatura:', { userId, status, plan, endDate });
       
-      const { data, error } = await supabase
+      // Buscar o user_id do profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('id', userId)
+        .single();
+
+      if (!profileData?.user_id) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const actualUserId = profileData.user_id;
+
+      // Verificar se já existe uma assinatura
+      const existingSub = subscriptions[actualUserId];
+
+      if (existingSub) {
+        // Atualizar assinatura existente
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .update({
+            plan: plan as any,
+            status: status as any,
+            expires_at: endDate || null,
+            cancelled_at: status === 'cancelled' ? new Date().toISOString() : null,
+          })
+          .eq('id', existingSub.id)
+          .select();
+
+        if (error) {
+          console.error('Erro do Supabase:', error);
+          throw error;
+        }
+
+        console.log('Assinatura atualizada:', data);
+      } else {
+        // Criar nova assinatura
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_id: actualUserId,
+            plan: plan as any,
+            status: status as any,
+            started_at: new Date().toISOString(),
+            expires_at: endDate || null,
+            cancelled_at: status === 'cancelled' ? new Date().toISOString() : null,
+          })
+          .select();
+
+        if (error) {
+          console.error('Erro do Supabase:', error);
+          throw error;
+        }
+
+        console.log('Assinatura criada:', data);
+      }
+
+      // Também atualizar o profile para compatibilidade
+      await supabase
         .from('profiles')
         .update({
           subscription_status: status,
           subscription_plan: plan,
           subscription_end_date: endDate || null,
         } as any)
-        .eq('id', userId)
-        .select();
-
-      if (error) {
-        console.error('Erro do Supabase:', error);
-        throw error;
-      }
-
-      console.log('Assinatura atualizada com sucesso:', data);
+        .eq('id', userId);
 
       toast({
         title: 'Assinatura atualizada',
@@ -233,12 +319,16 @@ export default function AdminPanelPage() {
     if (!plan) return <Badge variant="outline">Nenhum</Badge>;
     
     switch (plan) {
-      case 'basic':
-        return <Badge variant="outline">Básico</Badge>;
-      case 'pro':
-        return <Badge className="bg-purple-500">Pro</Badge>;
-      case 'enterprise':
-        return <Badge className="bg-orange-500">Enterprise</Badge>;
+      case 'trial':
+        return <Badge className="bg-blue-500">Trial</Badge>;
+      case 'monthly':
+        return <Badge variant="outline">Mensal</Badge>;
+      case 'quarterly':
+        return <Badge className="bg-purple-500">Trimestral</Badge>;
+      case 'semiannual':
+        return <Badge className="bg-orange-500">Semestral</Badge>;
+      case 'annual':
+        return <Badge className="bg-green-500">Anual</Badge>;
       default:
         return <Badge variant="outline">{plan}</Badge>;
     }
@@ -515,8 +605,8 @@ function EditSubscriptionForm({
   onSave: (userId: string, status: string, plan: string, endDate: string) => void;
   onCancel: () => void;
 }) {
-  const [status, setStatus] = useState(user.subscription_status || 'inactive');
-  const [plan, setPlan] = useState(user.subscription_plan || 'basic');
+  const [status, setStatus] = useState(user.subscription_status || 'active');
+  const [plan, setPlan] = useState(user.subscription_plan || 'monthly');
   const [endDate, setEndDate] = useState(user.subscription_end_date || '');
 
   return (
@@ -529,9 +619,8 @@ function EditSubscriptionForm({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="active">Ativo</SelectItem>
-            <SelectItem value="inactive">Inativo</SelectItem>
-            <SelectItem value="trial">Trial</SelectItem>
-            <SelectItem value="canceled">Cancelado</SelectItem>
+            <SelectItem value="cancelled">Cancelado</SelectItem>
+            <SelectItem value="expired">Expirado</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -543,9 +632,11 @@ function EditSubscriptionForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="basic">Básico</SelectItem>
-            <SelectItem value="pro">Pro</SelectItem>
-            <SelectItem value="enterprise">Enterprise</SelectItem>
+            <SelectItem value="trial">Trial (Teste)</SelectItem>
+            <SelectItem value="monthly">Mensal - R$ 29,90/mês</SelectItem>
+            <SelectItem value="quarterly">Trimestral - R$ 85,00</SelectItem>
+            <SelectItem value="semiannual">Semestral - R$ 150,00</SelectItem>
+            <SelectItem value="annual">Anual - R$ 240,00</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -557,6 +648,9 @@ function EditSubscriptionForm({
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
+        <p className="text-xs text-muted-foreground">
+          Deixe em branco para assinatura sem vencimento
+        </p>
       </div>
 
       <div className="flex gap-2 pt-4">
