@@ -81,8 +81,8 @@ const AppRoutes = memo(() => {
       <Routes>
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-        <Route path="/catalogo/:slug" element={<CatalogPage />} />
         <Route path="/*" element={user ? <ProtectedRoutes /> : <Navigate to="/landing" replace />} />
+        <Route path="/:slug" element={<CatalogPage />} />
       </Routes>
     </Suspense>
   );

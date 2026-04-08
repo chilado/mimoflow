@@ -99,7 +99,7 @@ const LandingPage = memo(function LandingPage() {
               Crie sua vitrine online em segundos. Compartilhe o link com clientes e deixe seus produtos brilharem — com fotos em carrossel, botão de WhatsApp, Instagram e Como chegar direto no Google Maps.
             </p>
             <p className="mt-3 text-sm font-medium text-primary">
-              mimoflow.vercel.app/catalogo/<span className="opacity-60">sua-empresa</span>
+              mimoflow.vercel.app/<span className="opacity-60">sua-empresa</span>
             </p>
           </div>
           <div className="flex-shrink-0 grid grid-cols-2 gap-3 text-sm">

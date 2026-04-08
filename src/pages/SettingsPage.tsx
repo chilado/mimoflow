@@ -99,7 +99,7 @@ export default function SettingsPage() {
   };
 
   const handleCopyLink = async () => {
-    const url = `https://mimoflow.vercel.app/catalogo/${catalogSlug}`;
+    const url = `https://mimoflow.vercel.app/${catalogSlug}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     toast.success('Link copiado!');
@@ -256,7 +256,7 @@ export default function SettingsPage() {
           <div>
             <Label className="text-xs">Link do Catálogo</Label>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">mimoflow.vercel.app/catalogo/</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">mimoflow.vercel.app/</span>
               <Input
                 value={catalogSlug}
                 onChange={e => setCatalogSlug(e.target.value)}
@@ -268,7 +268,7 @@ export default function SettingsPage() {
           </div>
           {catalogSlug && (
             <p className="text-xs text-muted-foreground">
-              Prévia: <span className="text-primary">https://mimoflow.vercel.app/catalogo/{catalogSlug}</span>
+              Prévia: <span className="text-primary">https://mimoflow.vercel.app/{catalogSlug}</span>
             </p>
           )}
           <div className="flex gap-2">
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                   Copiar Link
                 </Button>
                 <Button size="sm" variant="ghost" asChild>
-                  <a href={`https://mimoflow.vercel.app/catalogo/${catalogSlug}`} target="_blank" rel="noopener noreferrer">
+                  <a href={`https://mimoflow.vercel.app/${catalogSlug}`} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Abrir
                   </a>
                 </Button>

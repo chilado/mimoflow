@@ -32,7 +32,7 @@ export default function ProductsPage() {
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   const catalogSlug = (profile as any)?.catalog_slug as string | null;
-  const catalogUrl = catalogSlug ? `https://mimoflow.vercel.app/catalogo/${catalogSlug}` : null;
+  const catalogUrl = catalogSlug ? `https://mimoflow.vercel.app/${catalogSlug}` : null;
 
   const generateSlug = (name: string) =>
     name.toLowerCase()
@@ -45,7 +45,7 @@ export default function ProductsPage() {
     const name = profile.company_name || 'catalogo';
     const slug = generateSlug(name);
     await (supabase.from('profiles' as any).update({ catalog_slug: slug } as any).eq('id', (profile as any).id) as any);
-    const url = `https://mimoflow.vercel.app/catalogo/${slug}`;
+    const url = `https://mimoflow.vercel.app/${slug}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     toast.success('Link do catálogo copiado!');
