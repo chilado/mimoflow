@@ -5,70 +5,89 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
-import AuthPage from "./pages/AuthPage";
-import LandingPage from "./pages/LandingPage";
-import DashboardPage from "./pages/DashboardPage";
-import PricingPage from "./pages/PricingPage";
-import OrdersPage from "./pages/OrdersPage";
-import InventoryPage from "./pages/InventoryPage";
-import ClientsPage from "./pages/ClientsPage";
-import FinancePage from "./pages/FinancePage";
-import SettingsPage from "./pages/SettingsPage";
-import ProductsPage from "./pages/ProductsPage";
-import AgendaPage from "./pages/AgendaPage";
-import NotFound from "./pages/NotFound";
-import CatalogPage from "./pages/CatalogPage";
-import PlanPage from "./pages/PlanPage";
+import { lazy, Suspense, memo } from "react";
 
-const queryClient = new QueryClient();
+// Lazy loading para melhor performance
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const OrdersPage = lazy(() => import("./pages/OrdersPage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const ClientsPage = lazy(() => import("./pages/ClientsPage"));
+const FinancePage = lazy(() => import("./pages/FinancePage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ProductsPage = lazy(() => import("./pages/ProductsPage"));
+const AgendaPage = lazy(() => import("./pages/AgendaPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const CatalogPage = lazy(() => import("./pages/CatalogPage"));
+const PlanPage = lazy(() => import("./pages/PlanPage"));
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutos
+      gcTime: 1000 * 60 * 10, // 10 minutos
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+const PageLoader = memo(() => (
+  <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
     <div className="animate-pulse text-muted-foreground">Carregando...</div>
   </div>
-);
+));
+PageLoader.displayName = 'PageLoader';
 
-function ProtectedRoutes() {
+const ProtectedRoutes = memo(() => {
   const { user, loading } = useAuth();
 
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/auth" replace />;
 
   return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/clients" element={<ClientsPage />} />
-        <Route path="/agenda" element={<AgendaPage />} />
-        <Route path="/finance" element={<FinancePage />} />
-        <Route path="/products" element={<ProductsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/plan" element={<PlanPage />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/agenda" element={<AgendaPage />} />
+          <Route path="/finance" element={<FinancePage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/plan" element={<PlanPage />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
-}
+});
+ProtectedRoutes.displayName = 'ProtectedRoutes';
 
-function AppRoutes() {
+const AppRoutes = memo(() => {
   const { user, loading } = useAuth();
 
   if (loading) return <PageLoader />;
 
   return (
-    <Routes>
-      <Route path="/landing" element={<LandingPage />} />
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-      <Route path="/catalogo/:slug" element={<CatalogPage />} />
-      <Route path="/*" element={user ? <ProtectedRoutes /> : <Navigate to="/landing" replace />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+        <Route path="/catalogo/:slug" element={<CatalogPage />} />
+        <Route path="/*" element={user ? <ProtectedRoutes /> : <Navigate to="/landing" replace />} />
+      </Routes>
+    </Suspense>
   );
-}
+});
+AppRoutes.displayName = 'AppRoutes';
 
-const App = () => (
+const App = memo(() => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -80,6 +99,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+));
+App.displayName = 'App';
 
 export default App;
