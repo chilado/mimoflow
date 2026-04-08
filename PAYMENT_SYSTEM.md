@@ -27,7 +27,7 @@ Sistema de pagamento via Stripe foi completamente removido e substituído por um
 
 ### 2. Banco de Dados
 
-#### Nova Tabela: `payment_proofs`
+#### Tabela Utilizada: `payment_proofs` (já existente)
 ```sql
 - id: uuid (PK)
 - user_id: uuid (FK para auth.users)
@@ -43,13 +43,9 @@ Sistema de pagamento via Stripe foi completamente removido e substituído por um
 - updated_at: timestamp
 ```
 
-#### Storage Bucket: `payment-proofs`
+#### Storage Bucket: `payment-proofs` (já existente)
 - ✅ Bucket público para visualização
-- ✅ Políticas RLS:
-  - Usuários podem fazer upload dos próprios comprovantes
-  - Usuários podem visualizar os próprios comprovantes
-  - Admin pode visualizar todos os comprovantes
-  - Público pode visualizar comprovantes (para admin)
+- ✅ Políticas RLS já configuradas
 
 ### 3. Painel Administrativo
 
@@ -130,11 +126,6 @@ Novo componente criado em `src/components/AdminPaymentsTab.tsx`:
 - **Semestral**: R$ 150,00 (180 dias)
 - **Anual**: R$ 240,00 (365 dias)
 
-## Migrations Criadas
-
-1. `20260408160644_create_payment_proofs.sql` - Cria tabela payment_proofs
-2. `20260408161000_create_payment_proofs_storage.sql` - Cria bucket e políticas de storage
-
 ## Arquivos Modificados
 
 - `src/pages/PlanPage.tsx` - Removido Stripe, adicionado PIX
@@ -144,22 +135,12 @@ Novo componente criado em `src/components/AdminPaymentsTab.tsx`:
 
 ## Próximos Passos
 
-Para ativar o sistema em produção:
+O sistema está pronto para uso! Basta testar o fluxo completo:
 
-1. Executar migrations no Supabase:
-   ```bash
-   supabase db push
-   ```
-
-2. Criar bucket de storage manualmente no Supabase Dashboard:
-   - Nome: `payment-proofs`
-   - Público: Sim
-
-3. Testar fluxo completo:
-   - Usuário seleciona plano
-   - Usuário faz upload de comprovante
-   - Admin aprova pagamento
-   - Verificar se assinatura foi ativada
+1. Usuário seleciona plano
+2. Usuário faz upload de comprovante
+3. Admin aprova pagamento no painel
+4. Verificar se assinatura foi ativada automaticamente
 
 ## Segurança
 
