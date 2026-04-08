@@ -117,25 +117,42 @@ export default function PlanPage() {
     setUploadingProof(true);
     try {
       // Buscar nome da empresa
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('company_name')
         .eq('user_id', user.id)
         .single();
 
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+      }
+
       // Upload do comprovante para o storage
       const fileExt = proofFile.name.split('.').pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      console.log('Tentando fazer upload do arquivo:', fileName);
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(fileName, proofFile);
+        .upload(fileName, proofFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        throw new Error(`Erro ao fazer upload: ${uploadError.message}`);
+      }
+
+      console.log('Upload realizado com sucesso:', uploadData);
 
       // Obter URL pública do arquivo
       const { data: urlData } = supabase.storage
         .from('payment-proofs')
         .getPublicUrl(fileName);
+
+      console.log('URL pública:', urlData.publicUrl);
 
       // Calcular valor do plano
       const planAmounts = {
@@ -157,7 +174,10 @@ export default function PlanPage() {
           status: 'pending',
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Erro ao inserir registro:', insertError);
+        throw new Error(`Erro ao salvar comprovante: ${insertError.message}`);
+      }
 
       toast.success('Comprovante enviado com sucesso! Aguarde a aprovação do pagamento.');
       setPaymentDialogOpen(false);
@@ -165,7 +185,7 @@ export default function PlanPage() {
       setSelectedPlan(null);
     } catch (error: any) {
       console.error('Erro ao enviar comprovante:', error);
-      toast.error('Erro ao enviar comprovante. Tente novamente.');
+      toast.error(error.message || 'Erro ao enviar comprovante. Tente novamente.');
     } finally {
       setUploadingProof(false);
     }
