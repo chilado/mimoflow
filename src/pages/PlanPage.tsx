@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { CheckCircle2, Crown, RefreshCw, XCircle, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle2, Crown, RefreshCw, XCircle, Clock, Loader2, AlertTriangle, MessageSquare, Send } from 'lucide-react';
 
 type PlanKey = 'trial' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 type StatusKey = 'active' | 'cancelled' | 'expired';
@@ -75,6 +80,12 @@ export default function PlanPage() {
   const [history, setHistory] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
+  
+  // Support ticket form
+  const [ticketType, setTicketType] = useState('subscription');
+  const [ticketSubject, setTicketSubject] = useState('');
+  const [ticketDescription, setTicketDescription] = useState('');
+  const [submittingTicket, setSubmittingTicket] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -132,6 +143,47 @@ export default function PlanPage() {
     setActing(false);
   };
 
+  const handleSubmitTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    setSubmittingTicket(true);
+    try {
+      // Buscar nome da empresa
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('company_name')
+        .eq('user_id', user.id)
+        .single();
+
+      const { error } = await supabase
+        .from('support_tickets')
+        .insert({
+          user_id: user.id,
+          company_name: profileData?.company_name || null,
+          ticket_type: ticketType,
+          subject: ticketSubject,
+          description: ticketDescription,
+          status: 'received',
+          priority: 'normal',
+        });
+
+      if (error) throw error;
+
+      toast.success('Chamado enviado com sucesso! Nossa equipe entrará em contato em breve.');
+      
+      // Limpar formulário
+      setTicketSubject('');
+      setTicketDescription('');
+      setTicketType('subscription');
+    } catch (error: any) {
+      console.error('Erro ao enviar chamado:', error);
+      toast.error('Erro ao enviar chamado. Tente novamente.');
+    } finally {
+      setSubmittingTicket(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
 
   const days = sub ? daysLeft(sub.expires_at) : null;
@@ -144,6 +196,24 @@ export default function PlanPage() {
         <h1 className="font-heading text-2xl font-bold">Meu Plano</h1>
         <p className="text-muted-foreground text-sm mt-1">Gerencie sua assinatura do MimoFlow</p>
       </div>
+
+      {/* Alerta de assinatura inativa */}
+      {(!isActive || sub?.status === 'expired' || sub?.status === 'cancelled') && (
+        <Alert variant="destructive" className="animate-fade-up">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {sub?.status === 'expired' && (
+              <span>Sua assinatura expirou. Escolha um plano abaixo para reativar seu acesso completo ao MimoFlow.</span>
+            )}
+            {sub?.status === 'cancelled' && (
+              <span>Sua assinatura foi cancelada. Escolha um plano abaixo para reativar seu acesso ao MimoFlow.</span>
+            )}
+            {!sub && (
+              <span>Você não possui uma assinatura ativa. Escolha um plano abaixo para começar a usar o MimoFlow.</span>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Current plan */}
       <Card className="animate-fade-up stagger-1 border-primary/20">
@@ -273,6 +343,85 @@ export default function PlanPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Support Ticket Form */}
+      <Card className="animate-fade-up stagger-4">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Abrir Chamado de Suporte</CardTitle>
+          </div>
+          <CardDescription>
+            Precisa de ajuda? Envie um chamado e nossa equipe entrará em contato
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmitTicket} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ticket-type">Tipo de Chamado</Label>
+              <Select value={ticketType} onValueChange={setTicketType}>
+                <SelectTrigger id="ticket-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="subscription">Assinatura</SelectItem>
+                  <SelectItem value="technical">Problema Técnico</SelectItem>
+                  <SelectItem value="billing">Cobrança</SelectItem>
+                  <SelectItem value="feature">Solicitação de Funcionalidade</SelectItem>
+                  <SelectItem value="bug">Reportar Erro</SelectItem>
+                  <SelectItem value="other">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ticket-subject">Assunto</Label>
+              <Input
+                id="ticket-subject"
+                placeholder="Descreva brevemente o problema"
+                value={ticketSubject}
+                onChange={(e) => setTicketSubject(e.target.value)}
+                required
+                maxLength={100}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ticket-description">Descrição Detalhada</Label>
+              <Textarea
+                id="ticket-description"
+                placeholder="Descreva o problema ou solicitação em detalhes..."
+                value={ticketDescription}
+                onChange={(e) => setTicketDescription(e.target.value)}
+                required
+                rows={5}
+                maxLength={1000}
+              />
+              <p className="text-xs text-muted-foreground">
+                {ticketDescription.length}/1000 caracteres
+              </p>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={submittingTicket || !ticketSubject || !ticketDescription}
+            >
+              {submittingTicket ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Enviar Chamado
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

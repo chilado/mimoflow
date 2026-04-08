@@ -340,6 +340,51 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          id: string
+          user_id: string
+          company_name: string | null
+          ticket_type: 'subscription' | 'technical' | 'billing' | 'feature' | 'bug' | 'other'
+          subject: string
+          description: string
+          status: 'received' | 'in_progress' | 'waiting_response' | 'resolved' | 'closed'
+          priority: 'low' | 'normal' | 'high' | 'urgent'
+          admin_notes: string | null
+          resolved_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          company_name?: string | null
+          ticket_type: 'subscription' | 'technical' | 'billing' | 'feature' | 'bug' | 'other'
+          subject: string
+          description: string
+          status?: 'received' | 'in_progress' | 'waiting_response' | 'resolved' | 'closed'
+          priority?: 'low' | 'normal' | 'high' | 'urgent'
+          admin_notes?: string | null
+          resolved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          company_name?: string | null
+          ticket_type?: 'subscription' | 'technical' | 'billing' | 'feature' | 'bug' | 'other'
+          subject?: string
+          description?: string
+          status?: 'received' | 'in_progress' | 'waiting_response' | 'resolved' | 'closed'
+          priority?: 'low' | 'normal' | 'high' | 'urgent'
+          admin_notes?: string | null
+          resolved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number

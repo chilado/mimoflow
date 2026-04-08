@@ -8,8 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AdminTicketsTab } from '@/components/AdminTicketsTab';
 import { toast } from '@/hooks/use-toast';
-import { Lock, Unlock, Search, LogOut, Users, CreditCard, Shield, Eye, EyeOff } from 'lucide-react';
+import { Lock, Unlock, Search, LogOut, Users, CreditCard, Shield, Eye, EyeOff, MessageSquare, AlertCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -33,6 +36,21 @@ interface Subscription {
   created_at: string;
 }
 
+interface SupportTicket {
+  id: string;
+  user_id: string;
+  company_name: string | null;
+  ticket_type: 'subscription' | 'technical' | 'billing' | 'feature' | 'bug' | 'other';
+  subject: string;
+  description: string;
+  status: 'received' | 'in_progress' | 'waiting_response' | 'resolved' | 'closed';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  admin_notes: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function AdminPanelPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -46,6 +64,14 @@ export default function AdminPanelPage() {
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
+  // Support tickets
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [filteredTickets, setFilteredTickets] = useState<SupportTicket[]>([]);
+  const [ticketSearchTerm, setTicketSearchTerm] = useState('');
+  const [ticketFilterStatus, setTicketFilterStatus] = useState<string>('all');
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
 
   // Verificar autenticação ao carregar
   useEffect(() => {
@@ -429,7 +455,20 @@ export default function AdminPanelPage() {
 
       {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="users">
+              <Users className="h-4 w-4 mr-2" />
+              Usuários
+            </TabsTrigger>
+            <TabsTrigger value="tickets">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Chamados
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -590,6 +629,12 @@ export default function AdminPanelPage() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="tickets">
+            <AdminTicketsTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

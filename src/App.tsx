@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
+import { SubscriptionGuard } from "@/components/SubscriptionGuard";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import { lazy, Suspense, memo } from "react";
@@ -59,7 +60,7 @@ const AppRoutes = memo(() => {
         
         {/* Rotas protegidas */}
         {user ? (
-          <Route element={<AppLayout />}>
+          <Route element={<SubscriptionGuard><AppLayout /></SubscriptionGuard>}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/orders" element={<OrdersPage />} />
@@ -69,10 +70,16 @@ const AppRoutes = memo(() => {
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/plan" element={<PlanPage />} />
           </Route>
         ) : (
           <Route path="/" element={<Navigate to="/landing" replace />} />
+        )}
+        
+        {/* Página de planos - sempre acessível para usuários logados */}
+        {user && (
+          <Route element={<AppLayout />}>
+            <Route path="/plan" element={<PlanPage />} />
+          </Route>
         )}
         
         {/* Rota do catálogo - deve ser a última para não capturar outras rotas */}
