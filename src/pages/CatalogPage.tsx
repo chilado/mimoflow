@@ -96,34 +96,132 @@ export default function CatalogPage() {
       {/* Header */}
       <div className="border-b bg-card">
         <div className="max-w-5xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-5">
-            {/* Logo — larger, supports PNG with transparent bg */}
+          {/* Mobile Layout - Logo centralizado no topo */}
+          <div className="flex flex-col items-center gap-4 sm:hidden">
+            {/* Logo centralizado */}
             {profile?.company_logo_url ? (
-              <img src={profile.company_logo_url} alt="Logo" className="h-24 w-24 rounded-2xl object-contain bg-white border flex-shrink-0 p-1" />
+              <img 
+                src={profile.company_logo_url} 
+                alt="Logo" 
+                className="h-20 w-20 rounded-2xl object-contain bg-white border p-1" 
+              />
             ) : (
-              <div className="h-24 w-24 rounded-2xl bg-muted border flex items-center justify-center text-muted-foreground text-xs flex-shrink-0">Logo</div>
+              <div className="h-20 w-20 rounded-2xl bg-muted border flex items-center justify-center text-muted-foreground text-xs">
+                Logo
+              </div>
             )}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold font-heading">{profile?.company_name || 'Catálogo de Produtos'}</h1>
+            
+            {/* Informações centralizadas */}
+            <div className="text-center w-full">
+              <h1 className="text-xl font-bold font-heading">
+                {profile?.company_name || 'Catálogo de Produtos'}
+              </h1>
               {profile?.company_description && (
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{profile.company_description}</p>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {profile.company_description}
+                </p>
               )}
+            </div>
+            
+            {/* Botões lado a lado em mobile */}
+            <div className="grid grid-cols-2 gap-2 w-full">
+              {profile?.whatsapp && (
+                <a 
+                  href={`https://wa.me/${profile.whatsapp.replace(/\D/g, '')}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-colors"
+                  aria-label="Contato via WhatsApp"
+                >
+                  <WaIcon />
+                  <span className="text-xs">WhatsApp</span>
+                </a>
+              )}
+              {profile?.instagram && (
+                <a 
+                  href={`https://instagram.com/${profile.instagram.replace('@', '')}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 hover:opacity-90 text-white text-sm font-medium transition-opacity"
+                  aria-label="Seguir no Instagram"
+                >
+                  <IgIcon />
+                  <span className="text-xs">Instagram</span>
+                </a>
+              )}
+              {profile?.address && (
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(profile.address)}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors ${
+                    profile?.whatsapp && profile?.instagram ? 'col-span-2' : ''
+                  }`}
+                  aria-label="Ver localização no mapa"
+                >
+                  <MapIcon />
+                  <span className="text-xs">Como chegar</span>
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Layout - Original */}
+          <div className="hidden sm:flex items-center gap-5">
+            {/* Logo */}
+            {profile?.company_logo_url ? (
+              <img 
+                src={profile.company_logo_url} 
+                alt="Logo" 
+                className="h-24 w-24 rounded-2xl object-contain bg-white border flex-shrink-0 p-1" 
+              />
+            ) : (
+              <div className="h-24 w-24 rounded-2xl bg-muted border flex items-center justify-center text-muted-foreground text-xs flex-shrink-0">
+                Logo
+              </div>
+            )}
+            
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold font-heading">
+                {profile?.company_name || 'Catálogo de Produtos'}
+              </h1>
+              {profile?.company_description && (
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  {profile.company_description}
+                </p>
+              )}
+              
               <div className="flex gap-2 mt-3 flex-wrap">
                 {profile?.whatsapp && (
-                  <a href={`https://wa.me/${profile.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-colors">
+                  <a 
+                    href={`https://wa.me/${profile.whatsapp.replace(/\D/g, '')}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-colors"
+                    aria-label="Contato via WhatsApp"
+                  >
                     <WaIcon /> WhatsApp
                   </a>
                 )}
                 {profile?.instagram && (
-                  <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 hover:opacity-90 text-white text-sm font-medium transition-opacity">
+                  <a 
+                    href={`https://instagram.com/${profile.instagram.replace('@', '')}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 hover:opacity-90 text-white text-sm font-medium transition-opacity"
+                    aria-label="Seguir no Instagram"
+                  >
                     <IgIcon /> Instagram
                   </a>
                 )}
                 {profile?.address && (
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(profile.address)}`} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors">
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(profile.address)}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors"
+                    aria-label="Ver localização no mapa"
+                  >
                     <MapIcon /> Como chegar
                   </a>
                 )}
@@ -144,29 +242,66 @@ export default function CatalogPage() {
               {products.map(product => (
                 <div key={product.id} className="flex gap-3 rounded-xl border bg-card overflow-hidden shadow-sm">
                   {product.images.length > 0 ? (
-                    <div className="w-24 h-24 flex-shrink-0 cursor-pointer bg-muted"
-                      onClick={() => setLightbox({ images: product.images, index: 0 })}>
-                      <img src={product.images[0]} alt={product.name}
-                        className="w-full h-full object-cover" loading="lazy" />
+                    <div 
+                      className="w-28 h-28 flex-shrink-0 cursor-pointer bg-muted"
+                      onClick={() => setLightbox({ images: product.images, index: 0 })}
+                      role="button"
+                      aria-label={`Ver fotos de ${product.name}`}
+                    >
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name}
+                        className="w-full h-full object-cover" 
+                        loading="lazy" 
+                      />
                     </div>
                   ) : (
-                    <div className="w-24 h-24 flex-shrink-0 bg-muted flex items-center justify-center text-muted-foreground text-xs">Sem foto</div>
+                    <div className="w-28 h-28 flex-shrink-0 bg-muted flex items-center justify-center text-muted-foreground text-xs">
+                      Sem foto
+                    </div>
                   )}
-                  <div className="flex-1 py-3 pr-3 min-w-0">
-                    <h2 className="font-semibold text-sm leading-tight">{product.name}</h2>
+                  
+                  <div className="flex-1 py-3 pr-3 min-w-0 flex flex-col">
+                    <h2 className="font-semibold text-sm leading-tight">
+                      {product.name}
+                    </h2>
                     {product.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {product.description}
+                      </p>
                     )}
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-primary font-bold text-base">{formatCurrency(Number(product.base_price))}</p>
-                      {product.images.length > 0 && (
-                        <button
-                          onClick={() => setLightbox({ images: product.images, index: 0 })}
-                          className="text-xs px-2 py-1 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-                        >
-                          +Fotos ({product.images.length})
-                        </button>
-                      )}
+                    
+                    {/* Preço e botões lado a lado */}
+                    <div className="mt-auto pt-2">
+                      <p className="text-primary font-bold text-lg mb-2">
+                        {formatCurrency(Number(product.base_price))}
+                      </p>
+                      
+                      <div className="flex gap-2">
+                        {profile?.whatsapp && (
+                          <a
+                            href={`https://wa.me/${profile.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Gostaria de saber mais sobre: ${product.name}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-medium transition-colors"
+                            aria-label={`Perguntar sobre ${product.name} via WhatsApp`}
+                          >
+                            <WaIcon />
+                            <span>Perguntar</span>
+                          </a>
+                        )}
+                        
+                        {product.images.length > 0 && (
+                          <button
+                            onClick={() => setLightbox({ images: product.images, index: 0 })}
+                            className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors text-xs font-medium"
+                            aria-label={`Ver ${product.images.length} fotos de ${product.name}`}
+                          >
+                            <span>Ver Fotos</span>
+                            <span className="text-[10px] opacity-70">({product.images.length})</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -178,27 +313,58 @@ export default function CatalogPage() {
               {products.map(product => (
                 <div key={product.id} className="rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   {product.images.length > 0 ? (
-                    <div className="aspect-square overflow-hidden cursor-pointer bg-muted"
-                      onClick={() => setLightbox({ images: product.images, index: 0 })}>
-                      <img src={product.images[0]} alt={product.name}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
+                    <div 
+                      className="aspect-square overflow-hidden cursor-pointer bg-muted"
+                      onClick={() => setLightbox({ images: product.images, index: 0 })}
+                      role="button"
+                      aria-label={`Ver fotos de ${product.name}`}
+                    >
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+                        loading="lazy" 
+                      />
                     </div>
                   ) : (
-                    <div className="aspect-square bg-muted flex items-center justify-center text-muted-foreground text-sm">Sem foto</div>
+                    <div className="aspect-square bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                      Sem foto
+                    </div>
                   )}
+                  
                   <div className="p-4">
                     <h2 className="font-semibold text-base">{product.name}</h2>
                     {product.description && (
-                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                        {product.description}
+                      </p>
                     )}
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-primary font-bold text-lg">{formatCurrency(Number(product.base_price))}</p>
+                    
+                    <p className="text-primary font-bold text-lg mt-3">
+                      {formatCurrency(Number(product.base_price))}
+                    </p>
+                    
+                    <div className="flex gap-2 mt-3">
+                      {profile?.whatsapp && (
+                        <a
+                          href={`https://wa.me/${profile.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Gostaria de saber mais sobre: ${product.name}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-colors"
+                          aria-label={`Perguntar sobre ${product.name} via WhatsApp`}
+                        >
+                          <WaIcon />
+                          <span>Perguntar</span>
+                        </a>
+                      )}
+                      
                       {product.images.length > 0 && (
                         <button
                           onClick={() => setLightbox({ images: product.images, index: 0 })}
-                          className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-medium"
+                          className="px-4 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
+                          aria-label={`Ver ${product.images.length} fotos de ${product.name}`}
                         >
-                          +Fotos ({product.images.length})
+                          Ver Fotos ({product.images.length})
                         </button>
                       )}
                     </div>
@@ -212,28 +378,55 @@ export default function CatalogPage() {
 
       {/* Lightbox */}
       {lightbox && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center"
-          onClick={() => setLightbox(null)}>
-          <button className="absolute top-4 right-4 text-foreground/70 hover:text-foreground" onClick={() => setLightbox(null)}>
-            <X className="h-6 w-6" />
+        <div 
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Galeria de fotos"
+        >
+          <button 
+            className="absolute top-4 right-4 p-2 rounded-full bg-card/80 backdrop-blur-sm border text-foreground hover:bg-card transition-colors" 
+            onClick={() => setLightbox(null)}
+            aria-label="Fechar galeria"
+          >
+            <X className="h-5 w-5" />
           </button>
-          <div className="relative max-w-[90vw] max-h-[85vh] flex items-center" onClick={e => e.stopPropagation()}>
+          
+          <div className="relative w-full max-w-4xl flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            {/* Botões de navegação - mobile e desktop */}
             {lightbox.images.length > 1 && (
-              <button className="absolute -left-12 p-2 rounded-full bg-card border hover:bg-accent transition-colors"
-                onClick={() => setLightbox(prev => prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null)}>
-                <ChevronLeft className="h-5 w-5" />
-              </button>
+              <>
+                <button 
+                  className="absolute left-2 sm:-left-14 p-2 sm:p-3 rounded-full bg-card/90 backdrop-blur-sm border hover:bg-card transition-colors z-10"
+                  onClick={() => setLightbox(prev => prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null)}
+                  aria-label="Foto anterior"
+                >
+                  <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+                
+                <button 
+                  className="absolute right-2 sm:-right-14 p-2 sm:p-3 rounded-full bg-card/90 backdrop-blur-sm border hover:bg-card transition-colors z-10"
+                  onClick={() => setLightbox(prev => prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null)}
+                  aria-label="Próxima foto"
+                >
+                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              </>
             )}
-            <img src={lightbox.images[lightbox.index]} alt="" className="max-w-full max-h-[85vh] object-contain rounded-lg" />
-            {lightbox.images.length > 1 && (
-              <button className="absolute -right-12 p-2 rounded-full bg-card border hover:bg-accent transition-colors"
-                onClick={() => setLightbox(prev => prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null)}>
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            )}
+            
+            <img 
+              src={lightbox.images[lightbox.index]} 
+              alt={`Foto ${lightbox.index + 1} de ${lightbox.images.length}`}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg" 
+            />
           </div>
+          
+          {/* Contador de fotos */}
           {lightbox.images.length > 1 && (
-            <div className="absolute bottom-4 text-sm text-muted-foreground">{lightbox.index + 1} / {lightbox.images.length}</div>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-card/90 backdrop-blur-sm border text-sm text-foreground font-medium">
+              {lightbox.index + 1} / {lightbox.images.length}
+            </div>
           )}
         </div>
       )}
