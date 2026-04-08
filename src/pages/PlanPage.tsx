@@ -161,11 +161,11 @@ export default function PlanPage() {
         .insert({
           user_id: user.id,
           company_name: profileData?.company_name || null,
-          ticket_type: ticketType,
+          ticket_type: ticketType as any,
           subject: ticketSubject,
           description: ticketDescription,
-          status: 'received',
-          priority: 'normal',
+          status: 'received' as any,
+          priority: 'normal' as any,
         });
 
       if (error) throw error;
@@ -215,8 +215,18 @@ export default function PlanPage() {
         </Alert>
       )}
 
+      {/* Alerta de trial ativo */}
+      {isActive && isTrial && days !== null && (
+        <Alert className="animate-fade-up border-blue-500 bg-blue-50 dark:bg-blue-950">
+          <CheckCircle2 className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900 dark:text-blue-100">
+            Você está no período de teste gratuito! {days > 0 ? `Restam ${days} dia${days !== 1 ? 's' : ''} para aproveitar.` : 'Seu período de teste expira hoje.'} Escolha um plano abaixo para continuar usando o MimoFlow após o término.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Current plan */}
-      <Card className="animate-fade-up stagger-1 border-primary/20">
+      <Card className={`animate-fade-up stagger-1 ${isTrial && isActive ? 'border-blue-500' : 'border-primary/20'}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -232,6 +242,16 @@ export default function PlanPage() {
             <span className="text-lg font-bold">{sub ? PLAN_LABELS[sub.plan] : '-'}</span>
             <span className="text-sm text-muted-foreground">{sub ? PLAN_PRICES[sub.plan] : '-'}</span>
           </div>
+          {isTrial && isActive && (
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                🎉 Período de Teste Gratuito
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Aproveite 7 dias para explorar todas as funcionalidades do MimoFlow!
+              </p>
+            </div>
+          )}
           {sub && (
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
