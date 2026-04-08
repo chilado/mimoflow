@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import { lazy, Suspense, memo } from "react";
 
 // Lazy loading para melhor performance
@@ -92,6 +94,8 @@ const App = memo(() => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAInstallPrompt />
+      <PWAUpdatePrompt />
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />

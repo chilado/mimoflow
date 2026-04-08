@@ -2,15 +2,32 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>MimoFlow — Sua gestão no fluxo certo</title>
     <meta name="description" content="MimoFlow — Sua gestão no fluxo certo. Precificação, pedidos, estoque e financeiro para seu negócio criativo.">
     <meta name="author" content="MimoFlow" />
-    <meta name="theme-color" content="#E8467C" />
+    <meta name="theme-color" content="#E8467C" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a0a0f" media="(prefers-color-scheme: dark)" />
 
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MimoFlow" />
+    
+    <!-- Windows PWA Support -->
+    <meta name="msapplication-TileColor" content="#E8467C" />
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
+    <meta name="msapplication-config" content="none" />
 
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f102f424-29fe-45fb-bc35-abf61437a11c/id-preview-afe93d0a--8551fe0f-46a5-4e91-92a1-69d6326669f7.lovable.app-1774026606116.png">
@@ -27,11 +44,55 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Service Worker Registration with update handling
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((registration) => {
+              console.log('✅ Service Worker registrado');
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New service worker available
+                    if (confirm('Nova versão disponível! Atualizar agora?')) {
+                      newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.log('❌ Service Worker falhou:', error);
+            });
+          
+          // Handle controller change
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+          });
         });
       }
+      
+      // Install prompt handling
+      let deferredPrompt;
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show custom install button (can be implemented in React)
+        window.dispatchEvent(new CustomEvent('pwa-installable', { detail: { prompt: deferredPrompt } }));
+      });
+      
+      window.addEventListener('appinstalled', () => {
+        console.log('✅ PWA instalado com sucesso!');
+        deferredPrompt = null;
+      });
     </script>
   </body>
 </html>
