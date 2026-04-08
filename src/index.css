@@ -139,6 +139,33 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Touch-friendly targets */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Fluid typography */
+  .text-fluid-sm {
+    font-size: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  }
+  
+  .text-fluid-base {
+    font-size: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  }
+  
+  .text-fluid-lg {
+    font-size: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  }
+  
+  .text-fluid-xl {
+    font-size: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+  }
+  
+  .text-fluid-2xl {
+    font-size: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+  }
 }
 
 @layer components {
